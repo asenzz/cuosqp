@@ -569,7 +569,7 @@ static const char* test_basic_qp_update()
   q_new = OSQPVectorf_new(sols_data->q_new, data->n);
   osqp_update_lin_cost(solver, sols_data->q_new);
   mu_assert("Basic QP test update: Error in updating linear cost!",
-            OSQPVectorf_norm_inf_diff(solver->work->data->q, q_new) < TESTS_TOL);
+            OSQPVectorf_norm_inf_diff(solver->info->CUDA_handle, solver->work->data->q, q_new) < TESTS_TOL);
   OSQPVectorf_free(q_new);
 
   // UPDATE BOUND
@@ -583,12 +583,12 @@ static const char* test_basic_qp_update()
 
   l_new = OSQPVectorf_new(sols_data->l_new, data->m);
   mu_assert("Basic QP test update: Error in bounds update, lower bound!",
-            OSQPVectorf_norm_inf_diff(solver->work->data->l, l_new) < TESTS_TOL);
+            OSQPVectorf_norm_inf_diff(solver->info->CUDA_handle, solver->work->data->l, l_new) < TESTS_TOL);
   OSQPVectorf_free(l_new);
 
   u_new = OSQPVectorf_new(sols_data->u_new, data->m);
   mu_assert("Basic QP test update: Error in bounds update, upper bound!",
-            OSQPVectorf_norm_inf_diff(solver->work->data->u, u_new) < TESTS_TOL);
+            OSQPVectorf_norm_inf_diff(solver->info->CUDA_handle, solver->work->data->u, u_new) < TESTS_TOL);
   OSQPVectorf_free(u_new);
 
   // Return original values
@@ -607,7 +607,7 @@ static const char* test_basic_qp_update()
 
   l_new = OSQPVectorf_new(sols_data->l_new, data->m);
   mu_assert("Basic QP test update: Error in updating lower bound!",
-            OSQPVectorf_norm_inf_diff(solver->work->data->l, l_new) < TESTS_TOL);
+            OSQPVectorf_norm_inf_diff(solver->info->CUDA_handle, solver->work->data->l, l_new) < TESTS_TOL);
   OSQPVectorf_free(l_new);
 
   // Return original values
@@ -626,7 +626,7 @@ static const char* test_basic_qp_update()
 
   u_new = OSQPVectorf_new(sols_data->u_new, data->m);
   mu_assert("Basic QP test update: Error in updating upper bound!",
-            OSQPVectorf_norm_inf_diff(solver->work->data->u, u_new) < TESTS_TOL);
+            OSQPVectorf_norm_inf_diff(solver->info->CUDA_handle, solver->work->data->u, u_new) < TESTS_TOL);
   OSQPVectorf_free(u_new);
 
 

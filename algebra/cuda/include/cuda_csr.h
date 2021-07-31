@@ -26,13 +26,13 @@ extern "C" {
 # endif /* ifdef __cplusplus */
 
 
-void cuda_mat_init_P(const csc  *mat,
+void cuda_mat_init_P(CUDA_Handle_t *CUDA_Handle, const csc  *mat,
                      csr       **P,
                      c_float   **d_P_triu_val,
                      c_int     **d_P_triu_to_full_ind,
                      c_int     **d_P_diag_ind);
                      
-void cuda_mat_init_A(const csc  *mat,
+void cuda_mat_init_A(CUDA_Handle_t *CUDA_Handle, const csc  *mat,
                      csr       **A,
                      csr       **At,
                      c_int     **d_A_to_At_ind);
@@ -55,7 +55,7 @@ void cuda_mat_update_A(const c_float  *Ax,
 
 void cuda_mat_free(csr *mat);
 
-void cuda_submat_byrows(const csr    *A,
+void cuda_submat_byrows(CUDA_Handle_t *CUDA_Handle, const csr    *A,
                         const c_int  *d_rows,
                         csr         **Ared,
                         csr         **Aredt);

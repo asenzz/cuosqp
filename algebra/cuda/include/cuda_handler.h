@@ -20,22 +20,17 @@
 
 #include <cusparse_v2.h>
 #include <cublas_v2.h>
+#include <cuda_handle.h>
 
 # ifdef __cplusplus
 extern "C" {
 # endif
 
-typedef struct {
-  cublasHandle_t    cublasHandle;
-  cusparseHandle_t  cusparseHandle;
-  int              *d_index;
-} CUDA_Handle_t;
-
 
 /** Initialize CUDA library handle.
  * @return	CUDA library handle, or NULL if failure.
  */
-CUDA_Handle_t* cuda_init_libs(void);
+CUDA_Handle_t* cuda_init_libs(const int deviceId);
 
 
 /** Free CUDA library handle.

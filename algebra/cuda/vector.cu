@@ -200,38 +200,38 @@ void OSQPVectorf_set_scalar_conditional(OSQPVectorf       *a,
 }
 
 
-void OSQPVectorf_mult_scalar(OSQPVectorf *a,
+void OSQPVectorf_mult_scalar(CUDA_Handle_t *CUDA_Handle, OSQPVectorf *a,
                              c_float      sc) {
 
   if (sc == 1.0 || !a->d_val) return;
-  cuda_vec_mult_sc(a->d_val, sc, a->length);
+  cuda_vec_mult_sc(CUDA_Handle, a->d_val, sc, a->length);
 }
 
-void OSQPVectorf_plus(OSQPVectorf      *x,
+void OSQPVectorf_plus(CUDA_Handle_t *CUDA_Handle, OSQPVectorf      *x,
                      const OSQPVectorf *a,
                      const OSQPVectorf *b) {
 
-  cuda_vec_add_scaled(x->d_val, a->d_val, b->d_val, 1.0, 1.0, a->length);
+  cuda_vec_add_scaled(CUDA_Handle, x->d_val, a->d_val, b->d_val, 1.0, 1.0, a->length);
 }
 
-void OSQPVectorf_minus(OSQPVectorf       *x,
+void OSQPVectorf_minus(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                        const OSQPVectorf *a,
                        const OSQPVectorf *b) {
 
-  cuda_vec_add_scaled(x->d_val, a->d_val, b->d_val, 1.0, -1.0, a->length);
+  cuda_vec_add_scaled(CUDA_Handle, x->d_val, a->d_val, b->d_val, 1.0, -1.0, a->length);
 }
 
 
-void OSQPVectorf_add_scaled(OSQPVectorf       *x,
+void OSQPVectorf_add_scaled(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                             c_float            sca,
                             const OSQPVectorf *a,
                             c_float            scb,
                             const OSQPVectorf *b) {
 
-  cuda_vec_add_scaled(x->d_val, a->d_val, b->d_val, sca, scb, x->length);
+  cuda_vec_add_scaled(CUDA_Handle, x->d_val, a->d_val, b->d_val, sca, scb, x->length);
 }
 
-void OSQPVectorf_add_scaled3(OSQPVectorf       *x,
+void OSQPVectorf_add_scaled3(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                              c_float            sca,
                              const OSQPVectorf *a,
                              c_float            scb,
@@ -239,80 +239,80 @@ void OSQPVectorf_add_scaled3(OSQPVectorf       *x,
                              c_float            scc,
                              const OSQPVectorf *c) {
 
-  cuda_vec_add_scaled3(x->d_val, a->d_val, b->d_val, c->d_val, sca, scb, scc, x->length);
+  cuda_vec_add_scaled3(CUDA_Handle, x->d_val, a->d_val, b->d_val, c->d_val, sca, scb, scc, x->length);
 }
 
 
-c_float OSQPVectorf_norm_inf(const OSQPVectorf *v) {
+c_float OSQPVectorf_norm_inf(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *v) {
 
   c_float normval;
 
-  if (v->length) cuda_vec_norm_inf(v->d_val, v->length, &normval);
+  if (v->length) cuda_vec_norm_inf(CUDA_Handle, v->d_val, v->length, &normval);
   else           normval = 0.0;
 
   return normval;
 }
 
-c_float OSQPVectorf_norm_1(const OSQPVectorf *v) {
+c_float OSQPVectorf_norm_1(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *v) {
 
   c_float normval;
 
-  if (v->length) cuda_vec_norm_1(v->d_val, v->length, &normval);
+  if (v->length) cuda_vec_norm_1(CUDA_Handle, v->d_val, v->length, &normval);
   else           normval = 0.0;
 
   return normval;
 }
 
-c_float OSQPVectorf_scaled_norm_inf(const OSQPVectorf *S,
+c_float OSQPVectorf_scaled_norm_inf(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *S,
                                     const OSQPVectorf *v) {
 
   c_float normval;
 
-  if (v->length) cuda_vec_scaled_norm_inf(S->d_val, v->d_val, v->length, &normval);
+  if (v->length) cuda_vec_scaled_norm_inf(CUDA_Handle, S->d_val, v->d_val, v->length, &normval);
   else           normval = 0.0;
 
   return normval;
 }
 
-c_float OSQPVectorf_norm_inf_diff(const OSQPVectorf *a,
+c_float OSQPVectorf_norm_inf_diff(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                                   const OSQPVectorf *b) {
 
   c_float normDiff;
 
-  if (a->length) cuda_vec_diff_norm_inf(a->d_val, b->d_val, a->length, &normDiff);
+  if (a->length) cuda_vec_diff_norm_inf(CUDA_Handle, a->d_val, b->d_val, a->length, &normDiff);
   else           normDiff = 0.0;
 
   return normDiff;
 }
 
-c_float OSQPVectorf_mean(const OSQPVectorf *a) {
+c_float OSQPVectorf_mean(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a) {
 
   c_float mean;
 
-  if (a->length) cuda_vec_mean(a->d_val, a->length, &mean);
+  if (a->length) cuda_vec_mean(CUDA_Handle, a->d_val, a->length, &mean);
   else           mean = 0.0;
 
   return mean; 
 }
 
-c_float OSQPVectorf_dot_prod(const OSQPVectorf *a,
+c_float OSQPVectorf_dot_prod(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                              const OSQPVectorf *b) {
 
   c_float dotprod;
 
-  if (a->length) cuda_vec_prod(a->d_val, b->d_val, a->length, &dotprod);
+  if (a->length) cuda_vec_prod(CUDA_Handle, a->d_val, b->d_val, a->length, &dotprod);
   else           dotprod = 0.0;
 
   return dotprod;
 }
 
-c_float OSQPVectorf_dot_prod_signed(const OSQPVectorf *a,
+c_float OSQPVectorf_dot_prod_signed(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                                     const OSQPVectorf *b,
                                     c_int              sign) {
 
   c_float dotprod;
 
-  if (a->length) cuda_vec_prod_signed(a->d_val, b->d_val, sign, a->length, &dotprod);
+  if (a->length) cuda_vec_prod_signed(CUDA_Handle, a->d_val, b->d_val, sign, a->length, &dotprod);
   else           dotprod = 0.0;
 
   return dotprod;

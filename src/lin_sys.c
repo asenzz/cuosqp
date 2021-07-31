@@ -90,7 +90,7 @@ c_int unload_linsys_solver(enum linsys_solver_type linsys_solver) {
 
 // Initialize linear system solver structure
 // NB: Only the upper triangular part of P is filled
-c_int init_linsys_solver(LinSysSolver      **s,
+c_int init_linsys_solver(CUDA_Handle_t *CUDA_Handle, LinSysSolver      **s,
                          const OSQPMatrix   *P,
                          const OSQPMatrix   *A,
                          const OSQPVectorf  *rho_vec,
@@ -104,10 +104,10 @@ c_int init_linsys_solver(LinSysSolver      **s,
 #ifdef CUDA_SUPPORT
 
   case CUDA_PCG_SOLVER:
-    return init_linsys_solver_cudapcg((cudapcg_solver **)s, P, A, rho_vec, settings, scaled_pri_res, scaled_dua_res, polish);
+    return init_linsys_solver_cudapcg(CUDA_Handle, (cudapcg_solver **)s, P, A, rho_vec, settings, scaled_pri_res, scaled_dua_res, polish);
 
   default: /* CUDA_PCG_SOLVER */
-    return init_linsys_solver_cudapcg((cudapcg_solver **)s, P, A, rho_vec, settings, scaled_pri_res, scaled_dua_res, polish);
+    return init_linsys_solver_cudapcg(CUDA_Handle, (cudapcg_solver **)s, P, A, rho_vec, settings, scaled_pri_res, scaled_dua_res, polish);
 
 #else /* ifdef CUDA_SUPPORT */
 

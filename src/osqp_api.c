@@ -126,7 +126,7 @@ c_int osqp_setup(OSQPSolver** solverp,
 # endif /* ifdef PROFILING */
 
   // Initialize algebra libraries
-  exitflag = osqp_algebra_init_libs();
+  exitflag = osqp_algebra_init_libs(&solver->info->CUDA_handle, solver->settings->deviceId);
   if (exitflag) {
     return osqp_error(OSQP_ALGEBRA_LOAD_ERROR);
   }
@@ -138,12 +138,12 @@ c_int osqp_setup(OSQPSolver** solverp,
   work->data->n = n;
 
   // Cost function
-  work->data->P = OSQPMatrix_new_from_csc(P,1);   //copy assuming triu form
+  work->data->P = OSQPMatrix_new_from_csc(solver->info->CUDA_handle, P,1);   //copy assuming triu form
   work->data->q = OSQPVectorf_new(q,n);
   if (!(work->data->P) || !(work->data->q)) return osqp_error(OSQP_MEM_ALLOC_ERROR);
 
   // Constraints
-  work->data->A = OSQPMatrix_new_from_csc(A,0); //assumes non-triu form (i.e. full)
+  work->data->A = OSQPMatrix_new_from_csc(solver->info->CUDA_handle, A,0); //assumes non-triu form (i.e. full)
   if (!(work->data->A)) return osqp_error(OSQP_MEM_ALLOC_ERROR);
   work->data->l = OSQPVectorf_new(l,m);
   work->data->u = OSQPVectorf_new(u,m);
@@ -247,7 +247,7 @@ c_int osqp_setup(OSQPSolver** solverp,
   if (load_linsys_solver(settings->linsys_solver)) return osqp_error(OSQP_LINSYS_SOLVER_LOAD_ERROR);
 
   // Initialize linear system solver structure
-  exitflag = init_linsys_solver(&(work->linsys_solver), work->data->P, work->data->A, 
+  exitflag = init_linsys_solver(solver->info->CUDA_handle, &(work->linsys_solver), work->data->P, work->data->A,
                                 work->rho_vec, solver->settings,
                                 &work->scaled_pri_res, &work->scaled_dua_res, 0);
 
@@ -708,7 +708,7 @@ c_int osqp_cleanup(OSQPSolver *solver) {
 
   if (work) { // If workspace has been allocated
     // Free algebra library handlers
-    osqp_algebra_free_libs();
+    osqp_algebra_free_libs(&solver->info->CUDA_handle);
 
     // Free Data
     if (work->data) {
@@ -838,7 +838,7 @@ c_int osqp_update_lin_cost(OSQPSolver *solver, const c_float *q_new) {
   // Scaling
   if (solver->settings->scaling) {
     OSQPVectorf_ew_prod(work->data->q, work->data->q, work->scaling->D);
-    OSQPVectorf_mult_scalar(work->data->q, work->scaling->c);
+    OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->data->q, work->scaling->c);
   }
 
   // Reset solver information
@@ -962,12 +962,12 @@ c_int osqp_warm_start(OSQPSolver    *solver,
     if (x) OSQPVectorf_ew_prod(work->x, work->x, work->scaling->Dinv);
     if (y) {
       OSQPVectorf_ew_prod(work->y, work->y, work->scaling->Einv);
-      OSQPVectorf_mult_scalar(work->y, work->scaling->c);
+      OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->y, work->scaling->c);
     }
   }
 
   /* Compute Ax = z and store it in z */
-  if (x) OSQPMatrix_Axpy(work->data->A, work->x, work->z, 1.0, 0.0);
+  if (x) OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->A, work->x, work->z, 1.0, 0.0);
 
   /* Warm start the linear system solver */
   work->linsys_solver->warm_start(work->linsys_solver, work->x);

@@ -15,7 +15,7 @@
  * @param  work Workspace
  * @return      Number of rows in Ared, negative if error
  */
-static c_int form_Ared(OSQPWorkspace *work){
+static c_int form_Ared(CUDA_Handle_t *CUDA_Handle, OSQPWorkspace *work){
 
   c_int j, n_active;
   c_int m = work->data->m;
@@ -70,7 +70,7 @@ static c_int form_Ared(OSQPWorkspace *work){
   work->pol->n_active = n_active;
 
   //extract the relevant rows
-  work->pol->Ared = OSQPMatrix_submatrix_byrows(work->data->A, work->pol->active_flags);
+  work->pol->Ared = OSQPMatrix_submatrix_byrows(CUDA_Handle, work->data->A, work->pol->active_flags);
 
   // Memory clean-up
   c_free(active_flags);
@@ -186,20 +186,20 @@ static c_int iterative_refinement(OSQPSolver    *solver,
 
       // Upper Part: R^{n}
       // -= Px  (in the top partition)
-      OSQPMatrix_Axpy(work->data->P, z1, rhs1, -1.0, 1.0);
+      OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->P, z1, rhs1, -1.0, 1.0);
 
       // -= Ared'*y_red  (in the top partition)
-      OSQPMatrix_Atxpy(work->pol->Ared, z2, rhs1, -1.0, 1.0);
+      OSQPMatrix_Atxpy(solver->info->CUDA_handle, work->pol->Ared, z2, rhs1, -1.0, 1.0);
 
       // Lower Part: R^{m}
       // -= A*x  (in the bottom partition)
-      OSQPMatrix_Axpy(work->pol->Ared, z1, rhs2, -1.0, 1.0);
+      OSQPMatrix_Axpy(solver->info->CUDA_handle, work->pol->Ared, z1, rhs2, -1.0, 1.0);
 
       // Solve linear system. Store solution in rhs
       p->solve(p, rhs, 1);
 
       // Update solution
-      OSQPVectorf_plus(z,z,rhs);
+      OSQPVectorf_plus(solver->info->CUDA_handle, z,z,rhs);
     }
 
     OSQPVectorf_free(rhs);
@@ -282,7 +282,7 @@ c_int polish(OSQPSolver *solver) {
 #endif /* ifdef PROFILING */
 
   // Form Ared by assuming the active constraints and store in work->pol->Ared
-  mred = form_Ared(work);
+  mred = form_Ared(info->CUDA_handle, work);
   if (mred < 0) {
     // Polishing failed
     info->status_polish = -1;
@@ -290,7 +290,7 @@ c_int polish(OSQPSolver *solver) {
   }
 
   // Form and factorize reduced KKT
-  exitflag = init_linsys_solver(&plsh, work->data->P, work->pol->Ared,
+  exitflag = init_linsys_solver(solver->info->CUDA_handle, &plsh, work->data->P, work->pol->Ared,
                                 OSQP_NULL, settings, OSQP_NULL, OSQP_NULL, 1);
 
   if (exitflag) {
@@ -360,11 +360,11 @@ c_int polish(OSQPSolver *solver) {
 
   // Store the polished solution (x,z,y)
   OSQPVectorf_copy(work->pol->x, pol_sol_xview);   // pol->x
-  OSQPMatrix_Axpy(work->data->A, work->pol->x, work->pol->z, 1.0, 0.0);
+  OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->A, work->pol->x, work->pol->z, 1.0, 0.0);
   get_ypol_from_yred(work, pol_sol_yview);     // pol->y
 
   // Ensure (z,y) satisfies normal cone constraint
-  project_normalcone(work, work->pol->z, work->pol->y);
+  project_normalcone(info->CUDA_handle, work, work->pol->z, work->pol->y);
 
   // Compute primal and dual residuals at the polished solution
   update_info(solver, 0, 1, 1);

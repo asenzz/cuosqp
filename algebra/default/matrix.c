@@ -3,6 +3,7 @@
 #include "algebra_impl.h"
 #include "csc_math.h"
 #include "csc_utils.h"
+#include "../cuda/include/cuda_handler.h"
 
 /*  logical test functions ----------------------------------------------------*/
 
@@ -17,7 +18,7 @@ c_int OSQPMatrix_is_eq(OSQPMatrix *A, OSQPMatrix* B, c_float tol){
 #ifndef EMBEDDED
 
 //Make a copy from a csc matrix.  Returns OSQP_NULL on failure
-OSQPMatrix* OSQPMatrix_new_from_csc(const csc* A, c_int is_triu){
+OSQPMatrix* OSQPMatrix_new_from_csc(CUDA_Handle_t *CUDA_Handle, const csc* A, c_int is_triu){
 
   OSQPMatrix* out = c_malloc(sizeof(OSQPMatrix));
   if(!out) return OSQP_NULL;
@@ -59,7 +60,7 @@ c_int    OSQPMatrix_get_nz(const OSQPMatrix *M){return M->csc->p[M->csc->n];}
 /* math functions ----------------------------------------------------------*/
 
 //A = sc*A
-void OSQPMatrix_mult_scalar(OSQPMatrix *A, c_float sc){
+void OSQPMatrix_mult_scalar(CUDA_Handle_t *CUDA_Handle, OSQPMatrix *A, c_float sc){
   csc_scale(A->csc,sc);
 }
 
@@ -72,7 +73,7 @@ void OSQPMatrix_rmult_diag(OSQPMatrix *A, const OSQPVectorf *R) {
 }
 
 //y = alpha*A*x + beta*y
-void OSQPMatrix_Axpy(const OSQPMatrix *A,
+void OSQPMatrix_Axpy(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix *A,
                      const OSQPVectorf *x,
                      OSQPVectorf *y,
                      c_float alpha,
@@ -88,7 +89,7 @@ void OSQPMatrix_Axpy(const OSQPMatrix *A,
   }
 }
 
-void OSQPMatrix_Atxpy(const OSQPMatrix *A,
+void OSQPMatrix_Atxpy(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix *A,
                       const OSQPVectorf *x,
                       OSQPVectorf *y,
                       c_float alpha,
@@ -99,7 +100,7 @@ void OSQPMatrix_Atxpy(const OSQPMatrix *A,
 }
 
 
-c_float OSQPMatrix_quad_form(const OSQPMatrix *P, const OSQPVectorf *x) {
+c_float OSQPMatrix_quad_form(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix *P, const OSQPVectorf *x) {
    if(P->symmetry == TRIU) return csc_quad_form(P->csc, x->values);
    else {
 #ifdef PRINTING
@@ -129,7 +130,7 @@ void OSQPMatrix_free(OSQPMatrix *M){
   c_free(M);
 }
 
-OSQPMatrix* OSQPMatrix_submatrix_byrows(const OSQPMatrix* A, const OSQPVectori* rows){
+OSQPMatrix* OSQPMatrix_submatrix_byrows(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix* A, const OSQPVectori* rows){
 
   csc        *M;
   OSQPMatrix *out;

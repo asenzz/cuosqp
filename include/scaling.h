@@ -40,7 +40,7 @@ c_int unscale_data(OSQPSolver *solver);
  * @param  work Workspace
  * @return      exitflag
  */
-  c_int unscale_solution(OSQPVectorf* usolx,
+  c_int unscale_solution(CUDA_Handle_t *CUDA_Handle, OSQPVectorf* usolx,
                          OSQPVectorf* usoly,
                          const OSQPVectorf* solx,
                          const OSQPVectorf* soly,

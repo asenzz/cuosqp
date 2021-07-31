@@ -8,6 +8,8 @@ extern "C" {
 # include "osqp_configure.h"
 # include "osqp_api_constants.h"
 
+#include "cuda_handle.h"
+
 /*****************************
 * OSQP API type definitions  *
 ******************************/
@@ -66,7 +68,10 @@ typedef struct {
 # ifdef PROFILING
   c_float time_limit;                    ///< maximum seconds allowed to solve the problem; if 0, then disabled
 # endif // ifdef PROFILING
+  c_int deviceId;
 } OSQPSettings;
+
+
 
 /**
  * Solver return information
@@ -96,7 +101,7 @@ typedef struct {
   c_float polish_time; ///< time taken for polish phase (seconds)
   c_float run_time;    ///< total time  (seconds)
 # endif // ifdef PROFILING
-
+  CUDA_Handle_t *CUDA_handle;
 } OSQPInfo;
 
 

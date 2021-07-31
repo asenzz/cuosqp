@@ -120,10 +120,10 @@ c_int scale_data(OSQPSolver* solver) {
 
     // Compute avg norm of cols of P
     OSQPMatrix_col_norm_inf(work->data->P, work->D_temp);
-    c_temp = OSQPVectorf_mean(work->D_temp);
+    c_temp = OSQPVectorf_mean(solver->info->CUDA_handle, work->D_temp);
 
     // Compute inf norm of q
-    inf_norm_q = OSQPVectorf_norm_inf(work->data->q);
+    inf_norm_q = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->data->q);
 
     // If norm_q == 0, set it to 1 (ignore it in the scaling)
     // NB: Using the same function as with vectors here
@@ -139,10 +139,10 @@ c_int scale_data(OSQPSolver* solver) {
     c_temp = 1. / c_temp;
 
     // Scale P
-    OSQPMatrix_mult_scalar(work->data->P,c_temp);
+    OSQPMatrix_mult_scalar(solver->info->CUDA_handle, work->data->P,c_temp);
 
     // Scale q
-    OSQPVectorf_mult_scalar(work->data->q, c_temp);
+    OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->data->q, c_temp);
 
     // Update cost scaling
     work->scaling->c *= c_temp;
@@ -169,10 +169,10 @@ c_int unscale_data(OSQPSolver *solver) {
   OSQPWorkspace* work     = solver->work;
 
   // Unscale cost
-  OSQPMatrix_mult_scalar(work->data->P, work->scaling->cinv);
+  OSQPMatrix_mult_scalar(solver->info->CUDA_handle, work->data->P, work->scaling->cinv);
   OSQPMatrix_lmult_diag(work->data->P,  work->scaling->Dinv);
   OSQPMatrix_rmult_diag(work->data->P,  work->scaling->Dinv);
-  OSQPVectorf_mult_scalar(work->data->q,work->scaling->cinv);
+  OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->data->q,work->scaling->cinv);
   OSQPVectorf_ew_prod(work->data->q, work->data->q, work->scaling->Dinv);
 
   // Unscale constraints
@@ -189,7 +189,7 @@ c_int unscale_data(OSQPSolver *solver) {
   return 0;
 }
 
-c_int unscale_solution(OSQPVectorf* usolx,
+c_int unscale_solution(CUDA_Handle_t *CUDA_Handle, OSQPVectorf* usolx,
                        OSQPVectorf* usoly,
                        const OSQPVectorf* solx,
                        const OSQPVectorf* soly,
@@ -201,6 +201,6 @@ c_int unscale_solution(OSQPVectorf* usolx,
   // dual
   OSQPVectorf_ew_prod(usoly,soly,work->scaling->E);
 
-  OSQPVectorf_mult_scalar(usoly,work->scaling->cinv);
+  OSQPVectorf_mult_scalar(CUDA_Handle, usoly,work->scaling->cinv);
   return 0;
 }

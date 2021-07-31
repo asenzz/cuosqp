@@ -28,7 +28,7 @@
  *                           API Functions                                     *
  *******************************************************************************/
 
-OSQPMatrix* OSQPMatrix_new_from_csc(const csc *M,
+OSQPMatrix* OSQPMatrix_new_from_csc(CUDA_Handle_t *CUDA_Handle, const csc *M,
                                     c_int      is_triu) {
 
   OSQPMatrix* out = (OSQPMatrix *) c_calloc(1, sizeof(OSQPMatrix));
@@ -38,12 +38,12 @@ OSQPMatrix* OSQPMatrix_new_from_csc(const csc *M,
     /* Initialize P */
     out->symmetric = 1;
     out->P_triu_nnz = M->p[M->n];
-    cuda_mat_init_P(M, &out->S, &out->d_P_triu_val, &out->d_P_triu_to_full_ind, &out->d_P_diag_ind);
+    cuda_mat_init_P(CUDA_Handle, M, &out->S, &out->d_P_triu_val, &out->d_P_triu_to_full_ind, &out->d_P_diag_ind);
   }
   else {
     /* Initialize A */
     out->symmetric = 0;
-    cuda_mat_init_A(M, &out->S, &out->At, &out->d_A_to_At_ind);
+    cuda_mat_init_A(CUDA_Handle, M, &out->S, &out->At, &out->d_A_to_At_ind);
   }
 
   return out;
@@ -69,10 +69,10 @@ c_int OSQPMatrix_get_n( const OSQPMatrix *mat) { return mat->S->n; }
 
 c_int OSQPMatrix_get_nz(const OSQPMatrix *mat) { return mat->symmetric ? mat->P_triu_nnz : mat->S->nnz; }
 
-void OSQPMatrix_mult_scalar(OSQPMatrix *mat,
+void OSQPMatrix_mult_scalar(CUDA_Handle_t *CUDA_Handle, OSQPMatrix *mat,
                             c_float     sc) {
 
-  cuda_mat_mult_sc(mat->S, mat->At, mat->symmetric, sc);
+  cuda_mat_mult_sc(CUDA_Handle, mat->S, mat->At, mat->symmetric, sc);
 }
 
 void OSQPMatrix_lmult_diag(OSQPMatrix        *mat,
@@ -87,31 +87,31 @@ void OSQPMatrix_rmult_diag(OSQPMatrix        *mat,
   cuda_mat_rmult_diag(mat->S, mat->At, mat->symmetric, D->d_val);
 }
 
-void OSQPMatrix_Axpy(const OSQPMatrix  *mat,
+void OSQPMatrix_Axpy(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix  *mat,
                      const OSQPVectorf *x,
                      OSQPVectorf       *y,
                      c_float            alpha,
                      c_float            beta) {
 
-  cuda_mat_Axpy(mat->S, x->d_val, y->d_val, alpha, beta);
+  cuda_mat_Axpy(CUDA_Handle, mat->S, x->d_val, y->d_val, alpha, beta);
 }
 
-void OSQPMatrix_Atxpy(const OSQPMatrix  *mat,
+void OSQPMatrix_Atxpy(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix  *mat,
                       const OSQPVectorf *x,
                       OSQPVectorf       *y,
                       c_float            alpha,
                       c_float            beta) {
 
-  cuda_mat_Axpy(mat->At, x->d_val, y->d_val, alpha, beta);
+  cuda_mat_Axpy(CUDA_Handle, mat->At, x->d_val, y->d_val, alpha, beta);
 }
 
-c_float OSQPMatrix_quad_form(const OSQPMatrix  *mat,
+c_float OSQPMatrix_quad_form(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix  *mat,
                              const OSQPVectorf *x) {
 
   c_float res;
 
   if (mat->symmetric) {
-    cuda_mat_quad_form(mat->S, x->d_val, &res);
+    cuda_mat_quad_form(CUDA_Handle, mat->S, x->d_val, &res);
     return res;
   }
   else {
@@ -150,7 +150,7 @@ void OSQPMatrix_free(OSQPMatrix *mat){
   }
 }
 
-OSQPMatrix* OSQPMatrix_submatrix_byrows(const OSQPMatrix  *mat,
+OSQPMatrix* OSQPMatrix_submatrix_byrows(CUDA_Handle_t *CUDA_Handle, const OSQPMatrix  *mat,
                                         const OSQPVectori *rows) {
 
   OSQPMatrix *out;
@@ -167,7 +167,7 @@ OSQPMatrix* OSQPMatrix_submatrix_byrows(const OSQPMatrix  *mat,
   if (!out) return OSQP_NULL;
 
   out->symmetric = 0;
-  cuda_submat_byrows(mat->S, rows->d_val, &out->S, &out->At);
+  cuda_submat_byrows(CUDA_Handle, mat->S, rows->d_val, &out->S, &out->At);
 
   return out;
 }

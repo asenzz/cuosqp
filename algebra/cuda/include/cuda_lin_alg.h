@@ -86,14 +86,14 @@ void cuda_vec_set_sc_cond(c_float     *d_a,
 /**
  * d_a[i] *= sc for i in [0,n-1]
  */
-void cuda_vec_mult_sc(c_float *d_a,
+void cuda_vec_mult_sc(CUDA_Handle_t *CUDA_Handle, c_float *d_a,
                       c_float  sc,
                       c_int    n);
 
 /**
  * d_x[i] = sca * d_a[i] + scb * d_b[i] for i in [0,n-1]
  */
-void cuda_vec_add_scaled(c_float       *d_x,
+void cuda_vec_add_scaled(CUDA_Handle_t *CUDA_Handle, c_float       *d_x,
                          const c_float *d_a,
                          const c_float *d_b,
                          c_float        sca,
@@ -103,7 +103,7 @@ void cuda_vec_add_scaled(c_float       *d_x,
 /**
  * d_x[i] = sca * d_a[i] + scb * d_b[i] + scc * d_c[i] for i in [0,n-1]
  */
-void cuda_vec_add_scaled3(c_float       *d_x,
+void cuda_vec_add_scaled3(CUDA_Handle_t *CUDA_Handle, c_float       *d_x,
                           const c_float *d_a,
                           const c_float *d_b,
                           const c_float *d_c,
@@ -115,28 +115,28 @@ void cuda_vec_add_scaled3(c_float       *d_x,
 /**
  * h_res = |d_x|_inf
  */
-void cuda_vec_norm_inf(const c_float *d_x,
+void cuda_vec_norm_inf(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                        c_int          n,
                        c_float       *h_res);
 
 /**
  * h_res = |d_x|_1
  */
-void cuda_vec_norm_1(const c_float *d_x,
+void cuda_vec_norm_1(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                      c_int          n,
                      c_float       *h_res);
 
 /**
  * res = |d_x|_2
  */
-void cuda_vec_norm_2(const c_float *d_x,
+void cuda_vec_norm_2(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                      c_int          n,
                      c_float       *h_res);
 
 /**
  * h_res = |S*v|_inf
  */
-void cuda_vec_scaled_norm_inf(const c_float *d_S,
+void cuda_vec_scaled_norm_inf(CUDA_Handle_t *CUDA_Handle, const c_float *d_S,
                               const c_float *d_v,
                               c_int          n,
                               c_float       *h_res);
@@ -144,7 +144,7 @@ void cuda_vec_scaled_norm_inf(const c_float *d_S,
 /**
  * h_res = |d_a - d_b|_inf
  */
-void cuda_vec_diff_norm_inf(const c_float *d_a,
+void cuda_vec_diff_norm_inf(CUDA_Handle_t *CUDA_Handle, const c_float *d_a,
                             const c_float *d_b,
                             c_int          n,
                             c_float       *h_res);
@@ -152,14 +152,14 @@ void cuda_vec_diff_norm_inf(const c_float *d_a,
 /**
  * h_res = sum(d_x) / n
  */
-void cuda_vec_mean(const c_float *d_x,
+void cuda_vec_mean(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                    c_int          n,
                    c_float       *h_res);
 
 /**
  * h_res = d_a' * d_b
  */
-void cuda_vec_prod(const c_float *d_a,
+void cuda_vec_prod(CUDA_Handle_t *CUDA_Handle, const c_float *d_a,
                    const c_float *d_b,
                    c_int          n,
                    c_float       *h_res);
@@ -169,7 +169,7 @@ void cuda_vec_prod(const c_float *d_a,
  * h_res = <  d_a' * min(d_b, 0)  sign == -1
  *          | d_a' * d_b          otherwise
  */
-void cuda_vec_prod_signed(const c_float *d_a,
+void cuda_vec_prod_signed(CUDA_Handle_t *CUDA_Handle, const c_float *d_a,
                           const c_float *d_b,
                           c_int          sign,
                           c_int          n,
@@ -293,7 +293,7 @@ void cuda_vec_gather(c_int          nnz,
 /**
  * S = sc * S
  */
-void cuda_mat_mult_sc(csr     *S,
+void cuda_mat_mult_sc(CUDA_Handle_t *CUDA_Handle, csr     *S,
                       csr     *At,
                       c_int    symmetric,
                       c_float  sc);
@@ -325,7 +325,7 @@ void cuda_mat_rmult_diag_new(const csr     *S,
 /**
  * d_y = alpha * A*d_x + beta*d_y
  */
-void cuda_mat_Axpy(const csr     *A,
+void cuda_mat_Axpy(CUDA_Handle_t *CUDA_Handle, const csr     *A,
                    const c_float *d_x,
                    c_float       *d_y,
                    c_float        alpha,
@@ -334,7 +334,7 @@ void cuda_mat_Axpy(const csr     *A,
 /**
  * h_res = (1/2) d_x' * P * d_x
  */
-void cuda_mat_quad_form(const csr     *P,
+void cuda_mat_quad_form(CUDA_Handle_t *CUDA_Handle, const csr     *P,
                         const c_float *d_x,
                         c_float       *h_res);
 

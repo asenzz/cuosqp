@@ -19,7 +19,7 @@
 #include "helper_cuda.h"
 
 
-CUDA_Handle_t* cuda_init_libs(void) {
+CUDA_Handle_t* cuda_init_libs(const int deviceId) {
 
   int deviceCount = 0;
 
@@ -35,9 +35,9 @@ CUDA_Handle_t* cuda_init_libs(void) {
     return NULL;
   }
 
-  checkCudaErrors(cudaSetDevice(0));
-  checkCudaErrors(cusparseCreate(&CUDA_handle->cusparseHandle));
-  checkCudaErrors(cublasCreate(&CUDA_handle->cublasHandle));
+  checkCudaErrors(cudaSetDevice(deviceId));
+  checkCudaErrors(cusparseCreate((cusparseHandle_t *)&CUDA_handle->cusparseHandle));
+  checkCudaErrors(cublasCreate((cublasHandle_t *)&CUDA_handle->cublasHandle));
   checkCudaErrors(cudaMalloc(&CUDA_handle->d_index, sizeof(int)));
 
   return CUDA_handle;
@@ -45,8 +45,8 @@ CUDA_Handle_t* cuda_init_libs(void) {
 
 
 void cuda_free_libs(CUDA_Handle_t *CUDA_handle) {
-  cusparseDestroy(CUDA_handle->cusparseHandle);
-  cublasDestroy(CUDA_handle->cublasHandle);
+  cusparseDestroy(cusparseHandle_t(CUDA_handle->cusparseHandle));
+  cublasDestroy(cublasHandle_t(CUDA_handle->cublasHandle));
   cudaFree(CUDA_handle->d_index);
   free(CUDA_handle);
 }

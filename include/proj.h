@@ -53,7 +53,7 @@ void project(OSQPWorkspace *work, OSQPVectorf *y);
  * @param z    Primal variable z
  * @param y    Dual variable y
  */
- void project_normalcone(OSQPWorkspace *work, OSQPVectorf *z, OSQPVectorf *y);
+ void project_normalcone(CUDA_Handle_t *CUDA_Handle, OSQPWorkspace *work, OSQPVectorf *z, OSQPVectorf *y);
 
 # ifdef __cplusplus
 }

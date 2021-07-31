@@ -29,7 +29,9 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set(IS_WINDOWS ON)
 endif()
 
-
+LIST(APPEND CUDA_NVCC_FLAGS "-gencode arch=compute_70,code=sm_70")
+LIST(APPEND CMAKE_CUDA_FLAGS "-gencode arch=compute_70,code=sm_70")
+set(CMAKE_CUDA_ARCHITECTURES 70)
 
 # Set options
 # ----------------------------------------------
@@ -113,15 +115,21 @@ if (CUDA_SUPPORT)
     enable_language(CUDA)
     find_package(CUDA)
 
+    if (IS_WINDOWS)
+        set(helper_cuda_header_dir $ENV{NVCUDASAMPLES_ROOT}/common/inc)
+    else ()
+        set(helper_cuda_header_dir ${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc)
+    endif()
+
     # cublas and cusparse headers
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
     # sm_75 -> Turing support
     if (DFLOAT)
-        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --gpu-architecture=compute_52 --gpu-code=sm_52,sm_75")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --gpu-architecture=compute_70 --gpu-code=sm_70")
     else()
         # To use doubles we need compute capability 6.0 for atomic operations
-        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --gpu-architecture=compute_60 --gpu-code=sm_60,sm_75")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --gpu-architecture=compute_70 --gpu-code=sm_70")
     endif()
 endif()
 

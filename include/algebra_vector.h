@@ -91,27 +91,27 @@ void OSQPVectorf_set_scalar_conditional(OSQPVectorf       *a,
                                         c_float            val_if_pos);
 
 /* multiply float vector by float */
-void OSQPVectorf_mult_scalar(OSQPVectorf *a, c_float sc);
+void OSQPVectorf_mult_scalar(CUDA_Handle_t *CUDA_Handle, OSQPVectorf *a, c_float sc);
 
 /* x = a + b.  Set x == a for x += b.  */
-void OSQPVectorf_plus(OSQPVectorf      *x,
+void OSQPVectorf_plus(CUDA_Handle_t *CUDA_Handle, OSQPVectorf      *x,
                       const OSQPVectorf *a,
                       const OSQPVectorf *b);
 
 /* x = a - b.  Set x == a for x -= b. */
-void OSQPVectorf_minus(OSQPVectorf      *x,
+void OSQPVectorf_minus(CUDA_Handle_t *CUDA_Handle, OSQPVectorf      *x,
                       const OSQPVectorf *a,
                       const OSQPVectorf *b);
 
 /* x = sca*a + scb*b.  Set (x == a, sca==1.) for x += scb*b. */
-void OSQPVectorf_add_scaled(OSQPVectorf      *x,
+void OSQPVectorf_add_scaled(CUDA_Handle_t *CUDA_Handle, OSQPVectorf      *x,
                             c_float           sca,
                             const OSQPVectorf *a,
                             c_float           scb,
                             const OSQPVectorf *b);
 
 /* x = sca*a + scb*b + scc*c.   Set (x == a, sca==1.) for x += scb*b scc*c. */
-void OSQPVectorf_add_scaled3(OSQPVectorf       *x,
+void OSQPVectorf_add_scaled3(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                              c_float           sca,
                              const OSQPVectorf *a,
                              c_float           scb,
@@ -120,25 +120,25 @@ void OSQPVectorf_add_scaled3(OSQPVectorf       *x,
                              const OSQPVectorf *c);
 
 /* ||v||_inf */
-c_float OSQPVectorf_norm_inf(const OSQPVectorf *v);
+c_float OSQPVectorf_norm_inf(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *v);
 
 /* ||v||_1 */
-c_float OSQPVectorf_norm_1(const OSQPVectorf *v);
+c_float OSQPVectorf_norm_1(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *v);
 
 /* ||Sv||_inf */
-c_float OSQPVectorf_scaled_norm_inf(const OSQPVectorf *S, const OSQPVectorf *v);
+c_float OSQPVectorf_scaled_norm_inf(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *S, const OSQPVectorf *v);
 
 /* ||a - b||_inf */
-c_float OSQPVectorf_norm_inf_diff(const OSQPVectorf *a,
+c_float OSQPVectorf_norm_inf_diff(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                                   const OSQPVectorf *b);
 
 /* mean of vector elements */
-c_float OSQPVectorf_mean(const OSQPVectorf *a);
+c_float OSQPVectorf_mean(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a);
 
 
 
 /* Inner product a'b */
-c_float OSQPVectorf_dot_prod(const OSQPVectorf *a,
+c_float OSQPVectorf_dot_prod(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                             const OSQPVectorf *b);
 
 /* Inner product a'b, but using only the positive or negative
@@ -146,7 +146,7 @@ c_float OSQPVectorf_dot_prod(const OSQPVectorf *a,
  * negative terms.   Setting any other value for sign will return
  * the normal dot product
  */
-c_float OSQPVectorf_dot_prod_signed(const OSQPVectorf *a,
+c_float OSQPVectorf_dot_prod_signed(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                                     const OSQPVectorf *b,
                                     c_int sign);
 
@@ -194,7 +194,7 @@ c_int OSQPVectorf_in_reccone(const OSQPVectorf *y,
 # if EMBEDDED != 1
 
 /* Vector mean value*/
-c_float OSQPVectorf_mean(const OSQPVectorf *a);
+c_float OSQPVectorf_mean(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a);
 
 /* Vector elementwise reciprocal b = 1./a (needed for scaling)*/
 void OSQPVectorf_ew_reciprocal( OSQPVectorf *b, const OSQPVectorf *a);

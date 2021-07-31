@@ -30,18 +30,18 @@ c_float compute_rho_estimate(OSQPSolver *solver) {
   dua_res = work->scaled_dua_res;
 
   // Normalize primal residual
-  pri_res_norm  = OSQPVectorf_norm_inf(work->z);           // ||z||
-  temp_res_norm = OSQPVectorf_norm_inf(work->Ax);          // ||Ax||
+  pri_res_norm  = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->z);           // ||z||
+  temp_res_norm = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Ax);          // ||Ax||
   pri_res_norm  = c_max(pri_res_norm, temp_res_norm); // max (||z||,||Ax||)
   pri_res      /= (pri_res_norm + 1e-10);             // Normalize primal
                                                       // residual (prevent 0
                                                       // division)
 
   // Normalize dual residual
-  dua_res_norm  = OSQPVectorf_norm_inf(work->data->q);     // ||q||
-  temp_res_norm = OSQPVectorf_norm_inf(work->Aty);         // ||A' y||
+  dua_res_norm  = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->data->q);     // ||q||
+  temp_res_norm = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Aty);         // ||A' y||
   dua_res_norm  = c_max(dua_res_norm, temp_res_norm);
-  temp_res_norm = OSQPVectorf_norm_inf(work->Px);          //  ||P x||
+  temp_res_norm = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Px);          //  ||P x||
   dua_res_norm  = c_max(dua_res_norm, temp_res_norm); // max(||q||,||A' y||,||P
                                                       // x||)
   dua_res      /= (dua_res_norm + 1e-10);             // Normalize dual residual
@@ -150,19 +150,19 @@ static void compute_rhs(OSQPSolver *solver) {
   OSQPSettings*  settings = solver->settings;
 
   //part related to x variables
-  OSQPVectorf_add_scaled(work->xtilde_view,
+  OSQPVectorf_add_scaled(solver->info->CUDA_handle, work->xtilde_view,
                          settings->sigma,work->x_prev,
                          -1., work->data->q);
 
   //part related to dual variable in the equality constrained QP (nu)
   if (settings->rho_is_vec) {
     OSQPVectorf_ew_prod(work->ztilde_view, work->rho_inv_vec, work->y);
-    OSQPVectorf_add_scaled(work->ztilde_view,
+    OSQPVectorf_add_scaled(solver->info->CUDA_handle, work->ztilde_view,
                            -1.0, work->ztilde_view,
                            1.0, work->z_prev);
   }
   else {
-    OSQPVectorf_add_scaled(work->ztilde_view,
+    OSQPVectorf_add_scaled(solver->info->CUDA_handle, work->ztilde_view,
                            1.0, work->z_prev,
                            -work->rho_inv, work->y);
   }
@@ -185,12 +185,12 @@ void update_x(OSQPSolver *solver) {
   OSQPWorkspace* work     = solver->work;
 
   // update x
-  OSQPVectorf_add_scaled(work->x,
+  OSQPVectorf_add_scaled(solver->info->CUDA_handle, work->x,
                          settings->alpha,work->xtilde_view,
                          (1.0 - settings->alpha),work->x_prev);
 
   // update delta_x
-  OSQPVectorf_minus(work->delta_x,work->x,work->x_prev);
+  OSQPVectorf_minus(solver->info->CUDA_handle, work->delta_x,work->x,work->x_prev);
 }
 
 void update_z(OSQPSolver* solver) {
@@ -201,13 +201,13 @@ void update_z(OSQPSolver* solver) {
   // update z
   if (settings->rho_is_vec) {
     OSQPVectorf_ew_prod(work->z, work->rho_inv_vec,work->y);
-    OSQPVectorf_add_scaled3(work->z,
+    OSQPVectorf_add_scaled3(solver->info->CUDA_handle, work->z,
                             1., work->z,
                             settings->alpha, work->ztilde_view,
                             (1.0 - settings->alpha), work->z_prev);
   }
   else {
-    OSQPVectorf_add_scaled3(work->z,
+    OSQPVectorf_add_scaled3(solver->info->CUDA_handle, work->z,
                             settings->alpha, work->ztilde_view,
                             (1.0 - settings->alpha), work->z_prev,
                             work->rho_inv, work->y);
@@ -223,7 +223,7 @@ void update_y(OSQPSolver *solver) {
   OSQPSettings*  settings = solver->settings;
   OSQPWorkspace* work     = solver->work;
 
-  OSQPVectorf_add_scaled3(work->delta_y,
+  OSQPVectorf_add_scaled3(solver->info->CUDA_handle, work->delta_y,
                           settings->alpha, work->ztilde_view,
                           (1.0 - settings->alpha), work->z_prev,
                           -1.0, work->z);
@@ -232,10 +232,10 @@ void update_y(OSQPSolver *solver) {
     OSQPVectorf_ew_prod(work->delta_y, work->delta_y, work->rho_vec);
   }
   else {
-    OSQPVectorf_mult_scalar(work->delta_y, settings->rho);
+    OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->delta_y, settings->rho);
   }
 
-  OSQPVectorf_plus(work->y, work->y, work->delta_y);
+  OSQPVectorf_plus(solver->info->CUDA_handle, work->y, work->y, work->delta_y);
 
 }
 
@@ -245,8 +245,8 @@ c_float compute_obj_val(OSQPSolver *solver, OSQPVectorf *x) {
   OSQPSettings*  settings = solver->settings;
   OSQPWorkspace* work     = solver->work;
 
-  obj_val = OSQPMatrix_quad_form(work->data->P, x) +
-            OSQPVectorf_dot_prod(work->data->q, x);
+  obj_val = OSQPMatrix_quad_form(solver->info->CUDA_handle, work->data->P, x) +
+            OSQPVectorf_dot_prod(solver->info->CUDA_handle, work->data->q, x);
 
   if (settings->scaling) {
     obj_val *= work->scaling->cinv;
@@ -264,14 +264,14 @@ c_float compute_pri_res(OSQPSolver *solver, OSQPVectorf *x, OSQPVectorf *z) {
   OSQPWorkspace* work     = solver->work;
   c_float pri_res;
 
-  OSQPMatrix_Axpy(work->data->A,x,work->Ax, 1.0, 0.0); //Ax = A*x
-  OSQPVectorf_minus(work->z_prev, work->Ax, z);
+  OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->A,x,work->Ax, 1.0, 0.0); //Ax = A*x
+  OSQPVectorf_minus(solver->info->CUDA_handle, work->z_prev, work->Ax, z);
 
-  work->scaled_pri_res = OSQPVectorf_norm_inf(work->z_prev);
+  work->scaled_pri_res = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->z_prev);
 
   // If scaling active -> rescale residual
   if (settings->scaling && !settings->scaled_termination) {
-    pri_res =  OSQPVectorf_scaled_norm_inf(work->scaling->Einv, work->z_prev);
+    pri_res =  OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Einv, work->z_prev);
   }
   else{
     pri_res  = work->scaled_pri_res;
@@ -289,11 +289,11 @@ c_float compute_pri_tol(OSQPSolver *solver, c_float eps_abs, c_float eps_rel) {
   if (settings->scaling && !settings->scaled_termination) {
     // ||Einv * z||
     max_rel_eps =
-    OSQPVectorf_scaled_norm_inf(work->scaling->Einv, work->z);
+    OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Einv, work->z);
 
     // ||Einv * A * x||
     temp_rel_eps =
-    OSQPVectorf_scaled_norm_inf(work->scaling->Einv, work->Ax);
+    OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Einv, work->Ax);
 
     // Choose maximum
     max_rel_eps = c_max(max_rel_eps, temp_rel_eps);
@@ -301,10 +301,10 @@ c_float compute_pri_tol(OSQPSolver *solver, c_float eps_abs, c_float eps_rel) {
 
   else { // No unscaling required
     // ||z||
-    max_rel_eps = OSQPVectorf_norm_inf(work->z);
+    max_rel_eps = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->z);
 
     // ||A * x||
-    temp_rel_eps = OSQPVectorf_norm_inf(work->Ax);
+    temp_rel_eps = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Ax);
 
     // Choose maximum
     max_rel_eps = c_max(max_rel_eps, temp_rel_eps);
@@ -328,22 +328,22 @@ c_float compute_dua_res(OSQPSolver *solver, OSQPVectorf *x, OSQPVectorf *y) {
   OSQPVectorf_copy(work->x_prev,work->data->q);
 
   // P * x (upper triangular part)
-  OSQPMatrix_Axpy(work->data->P, x, work->Px, 1.0, 0.0); //Px = P*x
+  OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->P, x, work->Px, 1.0, 0.0); //Px = P*x
 
   // dr += P * x (full P matrix)
-  OSQPVectorf_plus(work->x_prev, work->x_prev, work->Px);
+  OSQPVectorf_plus(solver->info->CUDA_handle, work->x_prev, work->x_prev, work->Px);
 
   // dr += A' * y
   if (work->data->m > 0) {
-    OSQPMatrix_Atxpy(work->data->A, y, work->Aty, 1.0, 0.0); //Ax = A*x
-    OSQPVectorf_plus(work->x_prev, work->x_prev, work->Aty);
+    OSQPMatrix_Atxpy(solver->info->CUDA_handle, work->data->A, y, work->Aty, 1.0, 0.0); //Ax = A*x
+    OSQPVectorf_plus(solver->info->CUDA_handle, work->x_prev, work->x_prev, work->Aty);
   }
 
-  work->scaled_dua_res = OSQPVectorf_norm_inf(work->x_prev);
+  work->scaled_dua_res = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->x_prev);
 
   // If scaling active -> rescale residual
   if (settings->scaling && !settings->scaled_termination) {
-    dua_res =  work->scaling->cinv * OSQPVectorf_scaled_norm_inf(work->scaling->Dinv,
+    dua_res =  work->scaling->cinv * OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Dinv,
                                                                  work->x_prev);
   }
   else {
@@ -363,19 +363,19 @@ c_float compute_dua_tol(OSQPSolver *solver, c_float eps_abs, c_float eps_rel) {
   if (settings->scaling && !settings->scaled_termination) {
     // || Dinv q||
     max_rel_eps =
-    OSQPVectorf_scaled_norm_inf(work->scaling->Dinv,
+    OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Dinv,
                                 work->data->q);
 
     // || Dinv A' y ||
     temp_rel_eps =
-    OSQPVectorf_scaled_norm_inf(work->scaling->Dinv,
+    OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Dinv,
                                 work->Aty);
 
     max_rel_eps = c_max(max_rel_eps, temp_rel_eps);
 
     // || Dinv P x||
     temp_rel_eps =
-    OSQPVectorf_scaled_norm_inf(work->scaling->Dinv,
+    OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->Dinv,
                                 work->Px);
 
     max_rel_eps = c_max(max_rel_eps, temp_rel_eps);
@@ -384,14 +384,14 @@ c_float compute_dua_tol(OSQPSolver *solver, c_float eps_abs, c_float eps_rel) {
     max_rel_eps *= work->scaling->cinv;
   } else { // No scaling required
     // ||q||
-    max_rel_eps = OSQPVectorf_norm_inf(work->data->q);
+    max_rel_eps = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->data->q);
 
     // ||A'*y||
-    temp_rel_eps = OSQPVectorf_norm_inf(work->Aty);
+    temp_rel_eps = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Aty);
     max_rel_eps  = c_max(max_rel_eps, temp_rel_eps);
 
     // ||P*x||
-    temp_rel_eps = OSQPVectorf_norm_inf(work->Px);
+    temp_rel_eps = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Px);
     max_rel_eps  = c_max(max_rel_eps, temp_rel_eps);
   }
 
@@ -425,21 +425,21 @@ c_int is_primal_infeasible(OSQPSolver *solver, c_float eps_prim_inf) {
     OSQPVectorf_ew_prod(work->Adelta_x,
                         work->scaling->E,
                         work->delta_y);
-    norm_delta_y = OSQPVectorf_norm_inf(work->Adelta_x);
+    norm_delta_y = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Adelta_x);
   }
   else {
-    norm_delta_y = OSQPVectorf_norm_inf(work->delta_y);
+    norm_delta_y = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->delta_y);
   }
 
   if (norm_delta_y > eps_prim_inf) { // ||delta_y|| > 0
 
-    ineq_lhs  = OSQPVectorf_dot_prod_signed(work->data->u, work->delta_y,+1);
-    ineq_lhs += OSQPVectorf_dot_prod_signed(work->data->l, work->delta_y,-1);
+    ineq_lhs  = OSQPVectorf_dot_prod_signed(solver->info->CUDA_handle, work->data->u, work->delta_y,+1);
+    ineq_lhs += OSQPVectorf_dot_prod_signed(solver->info->CUDA_handle, work->data->l, work->delta_y,-1);
 
     // Check if the condition is satisfied: ineq_lhs < -eps
     if (ineq_lhs < -eps_prim_inf * norm_delta_y) {
       // Compute and return ||A'delta_y|| < eps_prim_inf
-      OSQPMatrix_Atxpy(work->data->A, work->delta_y, work->Atdelta_y,1.0,0.0);
+      OSQPMatrix_Atxpy(solver->info->CUDA_handle, work->data->A, work->delta_y, work->Atdelta_y,1.0,0.0);
 
       // Unscale if necessary
       if (settings->scaling && !settings->scaled_termination) {
@@ -448,7 +448,7 @@ c_int is_primal_infeasible(OSQPSolver *solver, c_float eps_prim_inf) {
                             work->scaling->Dinv);
       }
 
-      return OSQPVectorf_norm_inf(work->Atdelta_y) < eps_prim_inf * norm_delta_y;
+      return OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Atdelta_y) < eps_prim_inf * norm_delta_y;
     }
   }
 
@@ -477,12 +477,12 @@ c_int is_dual_infeasible(OSQPSolver *solver, c_float eps_dual_inf) {
   if (settings->scaling && !settings->scaled_termination) { // Unscale if needed
 
     norm_delta_x =
-    OSQPVectorf_scaled_norm_inf(work->scaling->D,
+    OSQPVectorf_scaled_norm_inf(solver->info->CUDA_handle, work->scaling->D,
                                 work->delta_x);
     cost_scaling = work->scaling->c;
   }
   else {
-    norm_delta_x = OSQPVectorf_norm_inf(work->delta_x);
+    norm_delta_x = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->delta_x);
     cost_scaling = 1.0;
   }
 
@@ -493,10 +493,10 @@ c_int is_dual_infeasible(OSQPSolver *solver, c_float eps_dual_inf) {
     /* vec_mult_scalar(work->delta_x, 1./norm_delta_x, work->data->n); */
 
     // Check first if q'*delta_x < 0
-    if (OSQPVectorf_dot_prod(work->data->q, work->delta_x) <
+    if (OSQPVectorf_dot_prod(solver->info->CUDA_handle, work->data->q, work->delta_x) <
         -cost_scaling * eps_dual_inf * norm_delta_x) {
       // Compute product P * delta_x
-      OSQPMatrix_Axpy(work->data->P, work->delta_x, work->Pdelta_x, 1.0, 0.0);
+      OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->P, work->delta_x, work->Pdelta_x, 1.0, 0.0);
 
       // Scale if necessary
       if (settings->scaling && !settings->scaled_termination) {
@@ -506,10 +506,10 @@ c_int is_dual_infeasible(OSQPSolver *solver, c_float eps_dual_inf) {
       }
 
       // Check if || P * delta_x || = 0
-      if (OSQPVectorf_norm_inf(work->Pdelta_x) <
+      if (OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->Pdelta_x) <
           cost_scaling * eps_dual_inf * norm_delta_x) {
         // Compute A * delta_x
-        OSQPMatrix_Axpy(work->data->A, work->delta_x, work->Adelta_x,1.0,0.0);
+        OSQPMatrix_Axpy(solver->info->CUDA_handle, work->data->A, work->delta_x, work->Adelta_x,1.0,0.0);
 
         // Scale if necessary
         if (settings->scaling && !settings->scaled_termination) {
@@ -564,7 +564,7 @@ void store_solution(OSQPSolver *solver) {
     // Unscale solution if scaling has been performed
       if (settings->scaling){
           //use x_prev and z_prev as scratch space
-          unscale_solution(work->x_prev,work->z_prev, //unscaled solution
+          unscale_solution(solver->info->CUDA_handle, work->x_prev,work->z_prev, //unscaled solution
                            work->x,work->y,           //scaled solution
                            work);
           OSQPVectorf_to_raw(solution->x, work->x_prev); // primal
@@ -599,8 +599,8 @@ void store_solution(OSQPSolver *solver) {
     // NB: It requires a division
     if ((info->status_val == OSQP_PRIMAL_INFEASIBLE) ||
         ((info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE))) {
-      norm_vec = OSQPVectorf_norm_inf(work->delta_y);
-      OSQPVectorf_mult_scalar(work->delta_y, 1. / norm_vec);
+      norm_vec = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->delta_y);
+      OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->delta_y, 1. / norm_vec);
       OSQPVectorf_to_raw(solution->prim_inf_cert, work->delta_y);
 
       /* Set dual infeasibility certificate to NaN */
@@ -610,8 +610,8 @@ void store_solution(OSQPSolver *solver) {
 
     if ((info->status_val == OSQP_DUAL_INFEASIBLE) ||
         ((info->status_val == OSQP_DUAL_INFEASIBLE_INACCURATE))) {
-      norm_vec = OSQPVectorf_norm_inf(work->delta_x);
-      OSQPVectorf_mult_scalar(work->delta_x, 1. / norm_vec);
+      norm_vec = OSQPVectorf_norm_inf(solver->info->CUDA_handle, work->delta_x);
+      OSQPVectorf_mult_scalar(solver->info->CUDA_handle, work->delta_x, 1. / norm_vec);
       OSQPVectorf_to_raw(solution->dual_inf_cert, work->delta_x);
 
       /* Set primal infeasibility certificate to NaN */

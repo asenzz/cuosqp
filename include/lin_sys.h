@@ -39,7 +39,7 @@ c_int unload_linsys_solver(enum linsys_solver_type linsys_solver);
  * @param   polish          0/1 depending whether we are allocating for polishing or not
  * @return                  Exitflag for error (0 if no errors)
  */
-c_int init_linsys_solver(LinSysSolver      **s,
+c_int init_linsys_solver(CUDA_Handle_t *CUDA_Handle, LinSysSolver      **s,
                          const OSQPMatrix   *P,
                          const OSQPMatrix   *A,
                          const OSQPVectorf  *rho_vec,

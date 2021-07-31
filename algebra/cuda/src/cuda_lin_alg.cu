@@ -28,11 +28,11 @@
 #include <thrust/gather.h>
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
-
+/*
 #ifdef __cplusplus
-extern "C" {extern CUDA_Handle_t *CUDA_handle;}
+extern "C" {extern CUDA_Handle_t *CUDA_Handle;}
 #endif
-
+*/
 
 /*******************************************************************************
  *                              GPU Kernels                                    *
@@ -525,14 +525,14 @@ void cuda_vec_set_sc_cond(c_float     *d_a,
   vec_set_sc_cond_kernel<<<number_of_blocks, THREADS_PER_BLOCK>>>(d_a, d_test, sc_if_neg, sc_if_zero, sc_if_pos, n);
 }
 
-void cuda_vec_mult_sc(c_float *d_a,
+void cuda_vec_mult_sc(CUDA_Handle_t *CUDA_Handle, c_float *d_a,
                       c_float  sc,
                       c_int    n) {
 
-  checkCudaErrors(cublasTscal(CUDA_handle->cublasHandle, n, &sc, d_a, 1));
+  checkCudaErrors(cublasTscal(cublasHandle_t(CUDA_Handle->cublasHandle), n, &sc, d_a, 1));
 }
 
-void cuda_vec_add_scaled(c_float       *d_x,
+void cuda_vec_add_scaled(CUDA_Handle_t *CUDA_Handle, c_float       *d_x,
                          const c_float *d_a,
                          const c_float *d_b,
                          c_float        sca,
@@ -546,22 +546,22 @@ void cuda_vec_add_scaled(c_float       *d_x,
     }
     else if (d_x == d_a) {
       /* d_x *= sca */
-      checkCudaErrors(cublasTscal(CUDA_handle->cublasHandle, n, &sca, d_x, 1));
+      checkCudaErrors(cublasTscal((cublasHandle_t)CUDA_Handle->cublasHandle, n, &sca, d_x, 1));
     }
     else {
       /* d_x = 0 */
       checkCudaErrors(cudaMemset(d_x, 0, n * sizeof(c_float)));
 
       /* d_x += sca * d_a */
-      checkCudaErrors(cublasTaxpy(CUDA_handle->cublasHandle, n, &sca, d_a, 1, d_x, 1));
+      checkCudaErrors(cublasTaxpy((cublasHandle_t)CUDA_Handle->cublasHandle, n, &sca, d_a, 1, d_x, 1));
     }
   }
 
   /* d_x += scb * d_b */
-  checkCudaErrors(cublasTaxpy(CUDA_handle->cublasHandle, n, &scb, d_b, 1, d_x, 1));
+  checkCudaErrors(cublasTaxpy((cublasHandle_t)CUDA_Handle->cublasHandle, n, &scb, d_b, 1, d_x, 1));
 }
 
-void cuda_vec_add_scaled3(c_float       *d_x,
+void cuda_vec_add_scaled3(CUDA_Handle_t *CUDA_Handle, c_float       *d_x,
                           const c_float *d_a,
                           const c_float *d_b,
                           const c_float *d_c,
@@ -577,58 +577,58 @@ void cuda_vec_add_scaled3(c_float       *d_x,
     }
     else if (d_x == d_a) {
       /* d_x *= sca */
-      checkCudaErrors(cublasTscal(CUDA_handle->cublasHandle, n, &sca, d_x, 1));
+      checkCudaErrors(cublasTscal((cublasHandle_t)CUDA_Handle->cublasHandle, n, &sca, d_x, 1));
     }
     else {
       /* d_x = 0 */
       checkCudaErrors(cudaMemset(d_x, 0, n * sizeof(c_float)));
 
       /* d_x += sca * d_a */
-      checkCudaErrors(cublasTaxpy(CUDA_handle->cublasHandle, n, &sca, d_a, 1, d_x, 1));
+      checkCudaErrors(cublasTaxpy((cublasHandle_t)CUDA_Handle->cublasHandle, n, &sca, d_a, 1, d_x, 1));
     }
   }
 
   /* d_x += scb * d_b */
-  checkCudaErrors(cublasTaxpy(CUDA_handle->cublasHandle, n, &scb, d_b, 1, d_x, 1));
+  checkCudaErrors(cublasTaxpy((cublasHandle_t)CUDA_Handle->cublasHandle, n, &scb, d_b, 1, d_x, 1));
 
   /* d_x += scc * d_c */
-  checkCudaErrors(cublasTaxpy(CUDA_handle->cublasHandle, n, &scc, d_c, 1, d_x, 1));
+  checkCudaErrors(cublasTaxpy((cublasHandle_t)CUDA_Handle->cublasHandle, n, &scc, d_c, 1, d_x, 1));
 }
 
-void cuda_vec_norm_inf(const c_float *d_x,
+void cuda_vec_norm_inf(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                        c_int          n,
                        c_float       *h_res) {
 
   cublasPointerMode_t mode;
-  checkCudaErrors(cublasGetPointerMode(CUDA_handle->cublasHandle, &mode));
+  checkCudaErrors(cublasGetPointerMode((cublasHandle_t)CUDA_Handle->cublasHandle, &mode));
 
   if (mode == CUBLAS_POINTER_MODE_DEVICE) {
-    checkCudaErrors(cublasITamax(CUDA_handle->cublasHandle, n, d_x, 1, CUDA_handle->d_index));
-    abs_kernel<<<1,1>>>(CUDA_handle->d_index, d_x, h_res);  /* d_res actually */
+    checkCudaErrors(cublasITamax((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_x, 1, CUDA_Handle->d_index));
+    abs_kernel<<<1,1>>>(CUDA_Handle->d_index, d_x, h_res);  /* d_res actually */
   }
   else {
     c_int idx;
-    checkCudaErrors(cublasITamax(CUDA_handle->cublasHandle, n, d_x, 1, &idx));
+    checkCudaErrors(cublasITamax((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_x, 1, &idx));
     checkCudaErrors(cudaMemcpy(h_res, d_x + (idx-1), sizeof(c_float), cudaMemcpyDeviceToHost));
     (*h_res) = abs(*h_res);
   }
 }
 
-void cuda_vec_norm_1(const c_float *d_x,
+void cuda_vec_norm_1(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                      c_int          n,
                      c_float       *h_res) {
 
-  cublasTasum(CUDA_handle->cublasHandle, n, d_x, 1, h_res);
+  cublasTasum((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_x, 1, h_res);
 }
 
-void cuda_vec_norm_2(const c_float *d_x,
+void cuda_vec_norm_2(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                      c_int          n,
                      c_float       *h_res) {
 
-  cublasTnrm2(CUDA_handle->cublasHandle, n, d_x, 1, h_res);
+  cublasTnrm2((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_x, 1, h_res);
 }
 
-void cuda_vec_scaled_norm_inf(const c_float *d_S,
+void cuda_vec_scaled_norm_inf(CUDA_Handle_t *CUDA_Handle, const c_float *d_S,
                               const c_float *d_v,
                               c_int          n,
                               c_float       *h_res) {
@@ -641,12 +641,12 @@ void cuda_vec_scaled_norm_inf(const c_float *d_S,
   cuda_vec_ew_prod(d_v_scaled, d_S, d_v, n);
 
   /* (*h_res) = |d_v_scaled|_inf */
-  cuda_vec_norm_inf(d_v_scaled, n, h_res);
+  cuda_vec_norm_inf(CUDA_Handle, d_v_scaled, n, h_res);
 
   cuda_free((void **) &d_v_scaled);
 }
 
-void cuda_vec_diff_norm_inf(const c_float *d_a,
+void cuda_vec_diff_norm_inf(CUDA_Handle_t *CUDA_Handle, const c_float *d_a,
                             const c_float *d_b,
                             c_int          n,
                             c_float       *h_res) {
@@ -656,31 +656,31 @@ void cuda_vec_diff_norm_inf(const c_float *d_a,
   cuda_malloc((void **) &d_diff, n * sizeof(c_float));
 
   /* d_diff = d_a - d_b */
-  cuda_vec_add_scaled(d_diff, d_a, d_b, 1.0, -1.0, n);
+  cuda_vec_add_scaled(CUDA_Handle, d_diff, d_a, d_b, 1.0, -1.0, n);
 
   /* (*h_res) = |d_diff|_inf */
-  cuda_vec_norm_inf(d_diff, n, h_res);
+  cuda_vec_norm_inf(CUDA_Handle, d_diff, n, h_res);
 
   cuda_free((void **) &d_diff);
 }
 
-void cuda_vec_mean(const c_float *d_x,
+void cuda_vec_mean(CUDA_Handle_t *CUDA_Handle, const c_float *d_x,
                    c_int          n,
                    c_float       *h_res) {
 
-  cublasTasum(CUDA_handle->cublasHandle, n, d_x, 1, h_res);
+  cublasTasum((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_x, 1, h_res);
   (*h_res) /= n;
 }
 
-void cuda_vec_prod(const c_float *d_a,
+void cuda_vec_prod(CUDA_Handle_t *CUDA_Handle, const c_float *d_a,
                    const c_float *d_b,
                    c_int          n,
                    c_float       *h_res) {
 
-  checkCudaErrors(cublasTdot(CUDA_handle->cublasHandle, n, d_a, 1, d_b, 1, h_res));
+  checkCudaErrors(cublasTdot((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_a, 1, d_b, 1, h_res));
 }
 
-void cuda_vec_prod_signed(const c_float *d_a,
+void cuda_vec_prod_signed(CUDA_Handle_t *CUDA_Handle, const c_float *d_a,
                           const c_float *d_b,
                           c_int          sign,
                           c_int          n,
@@ -700,7 +700,7 @@ void cuda_vec_prod_signed(const c_float *d_a,
     checkCudaErrors(cudaMemcpy(h_res, d_res, sizeof(c_float), cudaMemcpyDeviceToHost));
   }
   else {
-    checkCudaErrors(cublasTdot(CUDA_handle->cublasHandle, n, d_a, 1, d_b, 1, h_res));
+    checkCudaErrors(cublasTdot((cublasHandle_t)CUDA_Handle->cublasHandle, n, d_a, 1, d_b, 1, h_res));
   }
 
   cuda_free((void **) &d_res);
@@ -882,16 +882,16 @@ void cuda_vec_gather(c_int          nnz,
   thrust::gather(thrust::device, d_xInd, d_xInd + nnz, d_y, d_xVal);
 }
 
-void cuda_mat_mult_sc(csr     *S,
+void cuda_mat_mult_sc(CUDA_Handle_t *CUDA_Handle, csr     *S,
                       csr     *At,
                       c_int    symmetric,
                       c_float  sc) {
 
-  checkCudaErrors(cublasTscal(CUDA_handle->cublasHandle, S->nnz, &sc, S->val, 1));
+  checkCudaErrors(cublasTscal((cublasHandle_t)CUDA_Handle->cublasHandle, S->nnz, &sc, S->val, 1));
 
   if (!symmetric) {
     /* Update At as well */
-    checkCudaErrors(cublasTscal(CUDA_handle->cublasHandle, At->nnz, &sc, At->val, 1));
+    checkCudaErrors(cublasTscal((cublasHandle_t)CUDA_Handle->cublasHandle, At->nnz, &sc, At->val, 1));
   }
 }
 
@@ -937,7 +937,7 @@ void cuda_mat_rmult_diag_new(const csr     *S,
   mat_rmult_diag_new_kernel<<<number_of_blocks,THREADS_PER_BLOCK>>>(S->col_ind, d_diag, S->val, d_buffer, nnz);
 }
 
-void cuda_mat_Axpy(const csr     *A,
+void cuda_mat_Axpy(CUDA_Handle_t *CUDA_Handle, const csr     *A,
                    const c_float *d_x,
                    c_float       *d_y,
                    c_float        alpha,
@@ -945,11 +945,11 @@ void cuda_mat_Axpy(const csr     *A,
 
   if (A->nnz == 0 || alpha == 0.0) {
     /* d_y = beta * d_y */
-    cuda_vec_mult_sc(d_y, beta, A->m);
+    cuda_vec_mult_sc(CUDA_Handle, d_y, beta, A->m);
     return;
   }
 
-  checkCudaErrors(cusparseCsrmvEx(CUDA_handle->cusparseHandle, A->alg,
+  checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_Handle->cusparseHandle, A->alg,
                                   CUSPARSE_OPERATION_NON_TRANSPOSE,
                                   A->m, A->n, A->nnz, &alpha,
                                   CUDA_FLOAT, A->MatDescription, A->val,
@@ -958,7 +958,7 @@ void cuda_mat_Axpy(const csr     *A,
                                   CUDA_FLOAT, CUDA_FLOAT, A->buffer));
 }
 
-void cuda_mat_quad_form(const csr     *P,
+void cuda_mat_quad_form(CUDA_Handle_t *CUDA_Handle, const csr     *P,
                         const c_float *d_x,
                         c_float       *h_res) {
 
@@ -968,10 +968,10 @@ void cuda_mat_quad_form(const csr     *P,
   cuda_malloc((void **) &d_Px, n * sizeof(c_float));
 
   /* d_Px = P * x */
-  cuda_mat_Axpy(P, d_x, d_Px, 1.0, 0.0);
+  cuda_mat_Axpy(CUDA_Handle, P, d_x, d_Px, 1.0, 0.0);
 
   /* h_res = d_Px' * d_x */
-  cuda_vec_prod(d_Px, d_x, n, h_res);
+  cuda_vec_prod(CUDA_Handle, d_Px, d_x, n, h_res);
 
   /* h_res *= 0.5 */
   (*h_res) *= 0.5;

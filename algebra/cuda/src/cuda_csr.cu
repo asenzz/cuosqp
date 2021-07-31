@@ -27,11 +27,11 @@
 
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
-
+/*
 #ifdef __cplusplus
-extern "C" {extern CUDA_Handle_t *CUDA_handle;}
+extern "C" {extern CUDA_Handle_t *CUDA_Handle;}
 #endif
-
+*/
 /* This function is implemented in cuda_lin_alg.cu */
 extern void scatter(c_float *out, const c_float *in, const c_int *ind, c_int n);
 
@@ -232,12 +232,12 @@ __global__ void vector_init_abs_kernel(const c_int *a,
  *  Update the size of buffer used for the merge path based
  *  sparse matrix-vector product (spmv).
  */
-void update_mp_buffer(csr *P) {
+void update_mp_buffer(CUDA_Handle_t *CUDA_Handle, csr *P) {
 
   size_t bufferSizeInBytes = 0;
   c_float alpha = 1.0;
 
-  checkCudaErrors(cusparseCsrmvEx_bufferSize(CUDA_handle->cusparseHandle, P->alg,
+  checkCudaErrors(cusparseCsrmvEx_bufferSize((cusparseHandle_t)CUDA_Handle->cusparseHandle, P->alg,
                                              CUSPARSE_OPERATION_NON_TRANSPOSE,
                                              P->m, P->n, P->nnz, &alpha,
                                              CUDA_FLOAT, P->MatDescription, P->val,
@@ -313,11 +313,13 @@ void csr_copy_h2d(csr           *dev_mat,
   checkCudaErrors(cudaMemcpy(dev_mat->val, h_val, dev_mat->nnz * sizeof(c_float), cudaMemcpyHostToDevice));
 }
 
-csr* csr_init(c_int          m,
-              c_int          n,
-              const c_int   *h_row_ptr,
-              const c_int   *h_col_ind,
-              const c_float *h_val) {
+csr* csr_init(
+        CUDA_Handle_t *CUDA_Handle,
+        c_int          m,
+        c_int          n,
+        const c_int   *h_row_ptr,
+        const c_int   *h_col_ind,
+        const c_float *h_val) {
     
   csr *dev_mat = csr_alloc(m, n, h_row_ptr[m], 1);
   
@@ -327,7 +329,7 @@ csr* csr_init(c_int          m,
 
   /* copy_matrix_to_device */
   csr_copy_h2d(dev_mat, h_row_ptr, h_col_ind, h_val);
-  update_mp_buffer(dev_mat);
+  update_mp_buffer(CUDA_Handle, dev_mat);
 
   return dev_mat;
 }
@@ -336,18 +338,18 @@ csr* csr_init(c_int          m,
  *  Compress row indices from the COO format to the row pointer
  *  of the CSR format.
  */
-void compress_row_ind(csr *mat) {
+void compress_row_ind(CUDA_Handle_t *CUDA_Handle, csr *mat) {
 
   cuda_free((void** ) &mat->row_ptr);
   cuda_malloc((void** ) &mat->row_ptr, (mat->m + 1) * sizeof(c_float));
-  checkCudaErrors(cusparseXcoo2csr(CUDA_handle->cusparseHandle, mat->row_ind, mat->nnz, mat->m, mat->row_ptr, CUSPARSE_INDEX_BASE_ZERO));
+  checkCudaErrors(cusparseXcoo2csr((cusparseHandle_t)CUDA_Handle->cusparseHandle, mat->row_ind, mat->nnz, mat->m, mat->row_ptr, CUSPARSE_INDEX_BASE_ZERO));
 }
 
-void csr_expand_row_ind(csr *mat) {
+void csr_expand_row_ind(CUDA_Handle_t *CUDA_Handle, csr *mat) {
 
   if (!mat->row_ind) {
     cuda_malloc((void** ) &mat->row_ind, mat->nnz * sizeof(c_float));
-    checkCudaErrors(cusparseXcsr2coo(CUDA_handle->cusparseHandle, mat->row_ptr, mat->nnz, mat->m, mat->row_ind, CUSPARSE_INDEX_BASE_ZERO));
+    checkCudaErrors(cusparseXcsr2coo((cusparseHandle_t)CUDA_Handle->cusparseHandle, mat->row_ptr, mat->nnz, mat->m, mat->row_ind, CUSPARSE_INDEX_BASE_ZERO));
   }
 }
 
@@ -355,20 +357,20 @@ void csr_expand_row_ind(csr *mat) {
  *  Sorts matrix in COO format by row. It returns a permutation
  *  vector that describes reordering of the elements.
  */
-c_int* coo_sort(csr *A) {
+c_int* coo_sort(CUDA_Handle_t *CUDA_Handle, csr *A) {
 
   c_int *A_to_At_permutation;
   char *pBuffer;
   size_t pBufferSizeInBytes;
 
   cuda_malloc((void **) &A_to_At_permutation, A->nnz * sizeof(c_int));
-  checkCudaErrors(cusparseCreateIdentityPermutation(CUDA_handle->cusparseHandle, A->nnz, A_to_At_permutation));
+  checkCudaErrors(cusparseCreateIdentityPermutation((cusparseHandle_t)CUDA_Handle->cusparseHandle, A->nnz, A_to_At_permutation));
 
-  checkCudaErrors(cusparseXcoosort_bufferSizeExt(CUDA_handle->cusparseHandle, A->m, A->n, A->nnz, A->row_ind, A->col_ind, &pBufferSizeInBytes));
+  checkCudaErrors(cusparseXcoosort_bufferSizeExt((cusparseHandle_t)CUDA_Handle->cusparseHandle, A->m, A->n, A->nnz, A->row_ind, A->col_ind, &pBufferSizeInBytes));
 
   cuda_malloc((void **) &pBuffer, pBufferSizeInBytes * sizeof(char));
 
-  checkCudaErrors(cusparseXcoosortByRow(CUDA_handle->cusparseHandle, A->m, A->n, A->nnz, A->row_ind, A->col_ind, A_to_At_permutation, pBuffer));
+  checkCudaErrors(cusparseXcoosortByRow((cusparseHandle_t)CUDA_Handle->cusparseHandle, A->m, A->n, A->nnz, A->row_ind, A->col_ind, A_to_At_permutation, pBuffer));
 
   cuda_free((void **) &pBuffer);
 
@@ -459,7 +461,8 @@ void copy_csr(csr* target,
   source->MatDescription = NULL;
 }
 
-void csr_triu_to_full(csr    *P_triu,
+void csr_triu_to_full(CUDA_Handle_t *CUDA_Handle,
+                        csr    *P_triu,
                       c_int **P_triu_to_full_permutation,
                       c_int **P_diag_indices) {
 
@@ -476,7 +479,7 @@ void csr_triu_to_full(csr    *P_triu,
   cuda_calloc((void **) &has_non_zero_diag_element, n * sizeof(c_int));
   cuda_calloc((void **) &d_nnz_diag, sizeof(c_int));
 
-  csr_expand_row_ind(P_triu);
+  csr_expand_row_ind(CUDA_Handle, P_triu);
 
   number_of_blocks = (nnz_triu / THREADS_PER_BLOCK) + 1;
   fill_full_matrix_kernel<<<number_of_blocks, THREADS_PER_BLOCK>>>(Full_P->row_ind, Full_P->col_ind, d_nnz_diag, has_non_zero_diag_element, P_triu->row_ind, P_triu->col_ind, nnz_triu, n);
@@ -495,7 +498,7 @@ void csr_triu_to_full(csr    *P_triu,
   checkCudaErrors(cudaMemcpy(&h_nnz_diag, d_nnz_diag, sizeof(c_int), cudaMemcpyDeviceToHost));
 
   Full_nnz = (2 * (nnz_triu - h_nnz_diag)) + n;
-  c_int *d_P = coo_sort(Full_P);
+  c_int *d_P = coo_sort(CUDA_Handle, Full_P);
 
   number_of_blocks = (nnz_triu / THREADS_PER_BLOCK) + 1;
   reduce_permutation_kernel<<<number_of_blocks,THREADS_PER_BLOCK>>>(d_P, nnz_triu, Full_nnz);
@@ -510,8 +513,8 @@ void csr_triu_to_full(csr    *P_triu,
   get_diagonal_indices_kernel<<<number_of_blocks, THREADS_PER_BLOCK>>>(Full_P->row_ind, Full_P->col_ind, Full_nnz, *P_diag_indices);
 
   Full_P->nnz = Full_nnz;
-  compress_row_ind(Full_P);
-  update_mp_buffer(Full_P); 
+  compress_row_ind(CUDA_Handle, Full_P);
+  update_mp_buffer(CUDA_Handle, Full_P);
   copy_csr(P_triu, Full_P);
 
   cuda_mat_free(Full_P);
@@ -528,8 +531,7 @@ void csr_triu_to_full(csr    *P_triu,
  * Additionally, a gather indices vector is generated to perform the conversion
  * from A to A' faster during a matrix update.
  */
-void csr_transpose(csr    *A,
-                   c_int **A_to_At_permutation) {
+void csr_transpose(CUDA_Handle_t *CUDA_Handle, csr    *A, c_int **A_to_At_permutation) {
 
   (*A_to_At_permutation) = NULL;
 
@@ -540,14 +542,14 @@ void csr_transpose(csr    *A,
     return;
   }
 
-  csr_expand_row_ind(A);
+  csr_expand_row_ind(CUDA_Handle, A);
   coo_tranpose(A);
-  (*A_to_At_permutation) = coo_sort(A);
-  compress_row_ind(A);
+  (*A_to_At_permutation) = coo_sort(CUDA_Handle, A);
+  compress_row_ind(CUDA_Handle, A);
 
   permute_vector(A->val, *A_to_At_permutation, A->nnz);
 
-  update_mp_buffer(A);
+  update_mp_buffer(CUDA_Handle, A);
 }
 
 
@@ -555,7 +557,7 @@ void csr_transpose(csr    *A,
  *                           API Functions                                     *
  *******************************************************************************/
 
-void cuda_mat_init_P(const csc  *mat,
+void cuda_mat_init_P(CUDA_Handle_t *CUDA_Handle, const csc  *mat,
                      csr       **P,
                      c_float   **d_P_triu_val,
                      c_int     **d_P_triu_to_full_ind,
@@ -565,11 +567,11 @@ void cuda_mat_init_P(const csc  *mat,
   c_int nnz = mat->p[n];
   
   /* Initialize upper triangular part of P */
-  *P = csr_init(n, n, mat->p, mat->i, mat->x);
+  *P = csr_init(CUDA_Handle, n, n, mat->p, mat->i, mat->x);
 
   /* Convert P to a full matrix. Store indices of diagonal and triu elements. */
-  csr_triu_to_full(*P, d_P_triu_to_full_ind, d_P_diag_ind);
-  csr_expand_row_ind(*P);
+  csr_triu_to_full(CUDA_Handle, *P, d_P_triu_to_full_ind, d_P_diag_ind);
+  csr_expand_row_ind(CUDA_Handle, *P);
 
   /* We need 0.0 at val[nzz] -> nnz+1 elements */
   cuda_calloc((void **) d_P_triu_val, (nnz+1) * sizeof(c_float));
@@ -578,7 +580,7 @@ void cuda_mat_init_P(const csc  *mat,
   checkCudaErrors(cudaMemcpy(*d_P_triu_val, mat->x, nnz * sizeof(c_float), cudaMemcpyHostToDevice));
 }
 
-void cuda_mat_init_A(const csc  *mat,
+void cuda_mat_init_A(CUDA_Handle_t *CUDA_Handle, const csc  *mat,
                      csr       **A,
                      csr       **At,
                      c_int     **d_A_to_At_ind) {
@@ -587,13 +589,13 @@ void cuda_mat_init_A(const csc  *mat,
   c_int n = mat->n;
 
   /* Initializing At is easy since it is equal to A in CSC */
-  *At = csr_init(n, m, mat->p, mat->i, mat->x);
-  csr_expand_row_ind(*At);
+  *At = csr_init(CUDA_Handle, n, m, mat->p, mat->i, mat->x);
+  csr_expand_row_ind(CUDA_Handle, *At);
 
   /* We need to take transpose of At to get A */
-  *A = csr_init(n, m, mat->p, mat->i, mat->x);
-  csr_transpose(*A, d_A_to_At_ind);
-  csr_expand_row_ind(*A);
+  *A = csr_init(CUDA_Handle, n, m, mat->p, mat->i, mat->x);
+  csr_transpose(CUDA_Handle, *A, d_A_to_At_ind);
+  csr_expand_row_ind(CUDA_Handle, *A);
 }
 
 void cuda_mat_update_P(const c_float  *Px,
@@ -694,7 +696,7 @@ void cuda_mat_free(csr *mat) {
   }
 }
 
-void cuda_submat_byrows(const csr    *A,
+void cuda_submat_byrows(CUDA_Handle_t *CUDA_Handle, const csr    *A,
                         const c_int  *d_rows,
                         csr         **Ared,
                         csr         **Aredt) {
@@ -752,10 +754,10 @@ void cuda_submat_byrows(const csr    *A,
   compact<<<(nnz/THREADS_PER_BLOCK) + 1, THREADS_PER_BLOCK>>>(A->val, (*Ared)->val, d_predicate, d_compact_address, nnz);
 
   // Generate row pointer
-  compress_row_ind(*Ared);
+  compress_row_ind(CUDA_Handle, *Ared);
 
   // Update merge path buffer (CsrmvEx)
-  update_mp_buffer(*Ared);
+  update_mp_buffer(CUDA_Handle, *Ared);
 
   // We first make a copy of Ared
   *Aredt = csr_alloc(new_m, n, nnz_new, 1);
@@ -764,10 +766,10 @@ void cuda_submat_byrows(const csr    *A,
   checkCudaErrors(cudaMemcpy((*Aredt)->col_ind, (*Ared)->col_ind, nnz_new   * sizeof(c_int),   cudaMemcpyDeviceToDevice));
 
   c_int *d_A_to_At_ind;
-  csr_transpose(*Aredt, &d_A_to_At_ind);
+  csr_transpose(CUDA_Handle, *Aredt, &d_A_to_At_ind);
 
   // Update merge path buffer (CsrmvEx)
-  update_mp_buffer(*Aredt);
+  update_mp_buffer(CUDA_Handle, *Aredt);
 
   cuda_free((void**)&d_A_to_At_ind);
   cuda_free((void**)&d_predicate);

@@ -27,16 +27,16 @@ c_int test_in_reccone(const OSQPVectorf *y,
   
 }
 
-void project_normalcone(OSQPWorkspace *work, OSQPVectorf *z, OSQPVectorf *y) {
+void project_normalcone(CUDA_Handle_t *CUDA_Handle, OSQPWorkspace *work, OSQPVectorf *z, OSQPVectorf *y) {
 
   // NB: Use z_prev as temporary vector
 
   //z_prev = z + y;
-  OSQPVectorf_plus(work->z_prev,z,y);
+  OSQPVectorf_plus(CUDA_Handle, work->z_prev,z,y);
 
   // z = min(max(z_prev,l),u)
   OSQPVectorf_ew_bound_vec(z, work->z_prev, work->data->l, work->data->u);
 
   //y = z_prev - z;
-  OSQPVectorf_minus(y,work->z_prev,z);
+  OSQPVectorf_minus(CUDA_Handle, y,work->z_prev,z);
 }

@@ -236,7 +236,7 @@ void OSQPVectorf_set_scalar_conditional(OSQPVectorf *a,
 }
 
 
-void OSQPVectorf_mult_scalar(OSQPVectorf *a, c_float sc){
+void OSQPVectorf_mult_scalar(CUDA_Handle_t *CUDA_Handle, OSQPVectorf *a, c_float sc){
   c_int i;
   c_int length = a->length;
   c_float*  av = a->values;
@@ -246,7 +246,7 @@ void OSQPVectorf_mult_scalar(OSQPVectorf *a, c_float sc){
   }
 }
 
-void OSQPVectorf_plus(OSQPVectorf      *x,
+void OSQPVectorf_plus(CUDA_Handle_t *CUDA_Handle, OSQPVectorf      *x,
                      const OSQPVectorf *a,
                      const OSQPVectorf *b){
   c_int i;
@@ -267,7 +267,7 @@ void OSQPVectorf_plus(OSQPVectorf      *x,
   }
 }
 
-void OSQPVectorf_minus(OSQPVectorf       *x,
+void OSQPVectorf_minus(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                        const OSQPVectorf *a,
                        const OSQPVectorf *b){
   c_int i;
@@ -289,7 +289,7 @@ void OSQPVectorf_minus(OSQPVectorf       *x,
 }
 
 
-void OSQPVectorf_add_scaled(OSQPVectorf       *x,
+void OSQPVectorf_add_scaled(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                             c_float           sca,
                             const OSQPVectorf *a,
                             c_float           scb,
@@ -314,7 +314,7 @@ void OSQPVectorf_add_scaled(OSQPVectorf       *x,
 
 }
 
-void OSQPVectorf_add_scaled3(OSQPVectorf       *x,
+void OSQPVectorf_add_scaled3(CUDA_Handle_t *CUDA_Handle, OSQPVectorf       *x,
                              c_float           sca,
                              const OSQPVectorf *a,
                              c_float           scb,
@@ -342,7 +342,7 @@ void OSQPVectorf_add_scaled3(OSQPVectorf       *x,
 }
 
 
-c_float OSQPVectorf_norm_inf(const OSQPVectorf *v){
+c_float OSQPVectorf_norm_inf(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *v){
 
   c_int   i;
   c_int length  = v->length;
@@ -357,7 +357,7 @@ c_float OSQPVectorf_norm_inf(const OSQPVectorf *v){
   return normval;
 }
 
-c_float OSQPVectorf_norm_1(const OSQPVectorf *v){
+c_float OSQPVectorf_norm_1(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *v){
 
   c_int   i;
   c_int length  = v->length;
@@ -370,7 +370,7 @@ c_float OSQPVectorf_norm_1(const OSQPVectorf *v){
   return normval;
 }
 
-c_float OSQPVectorf_scaled_norm_inf(const OSQPVectorf *S, const OSQPVectorf *v){
+c_float OSQPVectorf_scaled_norm_inf(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *S, const OSQPVectorf *v){
 
   c_int   i;
   c_int length  = v->length;
@@ -400,7 +400,7 @@ c_float OSQPVectorf_scaled_norm_1(const OSQPVectorf *S, const OSQPVectorf *v){
   return normval;
 }
 
-c_float OSQPVectorf_norm_inf_diff(const OSQPVectorf *a,
+c_float OSQPVectorf_norm_inf_diff(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                                   const OSQPVectorf *b){
   c_int   i;
   c_int   length = a->length;
@@ -416,7 +416,7 @@ c_float OSQPVectorf_norm_inf_diff(const OSQPVectorf *a,
   return normDiff;
 }
 
-c_float OSQPVectorf_norm_1_diff(const OSQPVectorf *a,
+c_float OSQPVectorf_norm_1_diff(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a,
                                 const OSQPVectorf *b){
 
   c_int   i;
@@ -445,7 +445,7 @@ c_float OSQPVectorf_sum(const OSQPVectorf *a){
   return val;
 }
 
-c_float OSQPVectorf_dot_prod(const OSQPVectorf *a, const OSQPVectorf *b){
+c_float OSQPVectorf_dot_prod(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a, const OSQPVectorf *b){
 
   c_int   i;
   c_int   length = a->length;
@@ -459,7 +459,7 @@ c_float OSQPVectorf_dot_prod(const OSQPVectorf *a, const OSQPVectorf *b){
   return dotprod;
 }
 
-c_float OSQPVectorf_dot_prod_signed(const OSQPVectorf *a, const OSQPVectorf *b, c_int sign){
+c_float OSQPVectorf_dot_prod_signed(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a, const OSQPVectorf *b, c_int sign){
 
   c_int   i;
   c_int   length = a->length;
@@ -479,7 +479,7 @@ c_float OSQPVectorf_dot_prod_signed(const OSQPVectorf *a, const OSQPVectorf *b, 
   }
   else{
     /* return the conventional dot product */
-    dotprod = OSQPVectorf_dot_prod(a, b);
+    dotprod = OSQPVectorf_dot_prod(CUDA_Handle, a, b);
   }
   return dotprod;
 }
@@ -646,7 +646,7 @@ void OSQPVectori_ipermute(OSQPVectori *x, const OSQPVectori *b, const OSQPVector
 
 #if EMBEDDED != 1
 
-c_float OSQPVectorf_mean(const OSQPVectorf *a){
+c_float OSQPVectorf_mean(CUDA_Handle_t *CUDA_Handle, const OSQPVectorf *a){
 
   if (a->length) {
     return OSQPVectorf_sum(a) / (a->length);

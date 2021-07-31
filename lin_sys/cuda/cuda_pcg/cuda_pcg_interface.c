@@ -28,13 +28,13 @@
  *                           Private Functions                                 *
  *******************************************************************************/
 
-static c_float compute_tolerance(cudapcg_solver *s,
+static c_float compute_tolerance(CUDA_Handle_t *CUDA_Handle, cudapcg_solver *s,
                                  c_int           admm_iter) {
 
   c_float eps, rhs_norm;
 
   /* Compute the norm of RHS of the linear system */
-  s->vector_norm(s->d_rhs, s->n, &rhs_norm);
+  s->vector_norm(CUDA_Handle, s->d_rhs, s->n, &rhs_norm);
 
   if (s->polish) return c_max(rhs_norm * CUDA_PCG_POLISH_ACCURACY, CUDA_PCG_EPS_MIN);
 
@@ -70,7 +70,7 @@ static c_float compute_tolerance(cudapcg_solver *s,
 }
 
 /* d_rhs = d_b1 + A' * rho * d_b2 */
-static void compute_rhs(cudapcg_solver *s,
+static void compute_rhs(CUDA_Handle_t *CUDA_Handle, cudapcg_solver *s,
                         c_float        *d_b) {
 
   c_int n = s->n;
@@ -86,7 +86,7 @@ static void compute_rhs(cudapcg_solver *s,
 
   if (!s->d_rho_vec) {
     /* d_z *= rho */
-    cuda_vec_mult_sc(s->d_z, *s->h_rho, m);
+    cuda_vec_mult_sc(CUDA_Handle, s->d_z, *s->h_rho, m);
   }
   else {
     /* d_z = diag(d_rho_vec) * d_z */
@@ -94,7 +94,7 @@ static void compute_rhs(cudapcg_solver *s,
   }
 
   /* d_rhs += A' * d_z */
-  cuda_mat_Axpy(s->At, s->d_z, s->d_rhs, 1.0, 1.0);
+  cuda_mat_Axpy(CUDA_Handle, s->At, s->d_z, s->d_rhs, 1.0, 1.0);
 }
 
 
@@ -102,7 +102,7 @@ static void compute_rhs(cudapcg_solver *s,
  *                              API Functions                                  *
  *******************************************************************************/
 
-c_int init_linsys_solver_cudapcg(cudapcg_solver    **sp,
+c_int init_linsys_solver_cudapcg(CUDA_Handle_t *CUDA_Handle, cudapcg_solver    **sp,
                                  const OSQPMatrix   *P,
                                  const OSQPMatrix   *A,
                                  const OSQPVectorf  *rho_vec,
@@ -216,14 +216,14 @@ c_int init_linsys_solver_cudapcg(cudapcg_solver    **sp,
   s->update_rho_vec  = &update_linsys_solver_rho_vec_cudapcg;
 
   /* Initialize PCG preconditioner */
-  if (s->precondition) cuda_pcg_update_precond(s, 1, 1, 1);
+  if (s->precondition) cuda_pcg_update_precond(CUDA_Handle, s, 1, 1, 1);
 
   /* No error */
   return 0;
 }
 
 
-c_int solve_linsys_cudapcg(cudapcg_solver *s,
+c_int solve_linsys_cudapcg(CUDA_Handle_t *CUDA_Handle, cudapcg_solver *s,
                            OSQPVectorf    *b,
                            c_int           admm_iter) {
 
@@ -231,25 +231,25 @@ c_int solve_linsys_cudapcg(cudapcg_solver *s,
   c_float eps;
 
   /* Compute the RHS of the reduced KKT system and store it in s->d_rhs */
-  compute_rhs(s, b->d_val);
+  compute_rhs(CUDA_Handle, s, b->d_val);
 
   /* Compute the required solution precision */
-  eps = compute_tolerance(s, admm_iter);
+  eps = compute_tolerance(CUDA_Handle, s, admm_iter);
 
   /* Solve the linear system with PCG */
-  pcg_iters = cuda_pcg_alg(s, eps, s->max_iter);
+  pcg_iters = cuda_pcg_alg(CUDA_Handle, s, eps, s->max_iter);
 
   /* Copy the first part of the solution to b->d_val */
   cuda_vec_copy_d2d(b->d_val, s->d_x, s->n);
 
   if (!s->polish) {
     /* Compute d_z = A * d_x */
-    if (s->m) cuda_mat_Axpy(s->A, s->d_x, b->d_val + s->n, 1.0, 0.0);
+    if (s->m) cuda_mat_Axpy(CUDA_Handle, s->A, s->d_x, b->d_val + s->n, 1.0, 0.0);
   }
   else {
     /* Compute yred = (A * d_x - b) / delta */
-    cuda_mat_Axpy(s->A, s->d_x, b->d_val + s->n, 1.0, -1.0);
-    cuda_vec_mult_sc(b->d_val + s->n, *s->h_rho, s->m);
+    cuda_mat_Axpy(CUDA_Handle, s->A, s->d_x, b->d_val + s->n, 1.0, -1.0);
+    cuda_vec_mult_sc(CUDA_Handle, b->d_val + s->n, *s->h_rho, s->m);
   }
 
   // GB: Should we set zero_pcg_iters to zero otherwise?
@@ -298,20 +298,20 @@ void free_linsys_solver_cudapcg(cudapcg_solver *s) {
 }
 
 
-c_int update_linsys_solver_matrices_cudapcg(cudapcg_solver   *s,
+c_int update_linsys_solver_matrices_cudapcg(CUDA_Handle_t *CUDA_Handle, cudapcg_solver   *s,
                                             const OSQPMatrix *P,
                                             const OSQPMatrix *A) {
 
-  if (s->precondition) cuda_pcg_update_precond(s, 1, 1, 0);
+  if (s->precondition) cuda_pcg_update_precond(CUDA_Handle, s, 1, 1, 0);
   return 0;
 }
 
 
-c_int update_linsys_solver_rho_vec_cudapcg(cudapcg_solver    *s,
+c_int update_linsys_solver_rho_vec_cudapcg(CUDA_Handle_t *CUDA_Handle, cudapcg_solver    *s,
                                            const OSQPVectorf *rho_vec,
                                            c_float            rho_sc) {
 
-  if (s->precondition) cuda_pcg_update_precond(s, 0, 0, 1);
+  if (s->precondition) cuda_pcg_update_precond(CUDA_Handle, s, 0, 0, 1);
   return 0;
 }
 
