@@ -4,10 +4,11 @@
 #include "minunit.h"
 #include "lin_alg/data.h"
 
+static CUDA_Handle_t *pCUDA_Handle = NULL;
+
 #ifndef CUDA_SUPPORT
 
 #include "csc_utils.h"
-
 
 static const char* test_constr_sparse_mat() {
 
@@ -15,7 +16,6 @@ static const char* test_constr_sparse_mat() {
 
   OSQPVectorf *v1, *v2;
   c_int mn;
-
   lin_alg_sols_data *data = generate_problem_lin_alg_sols_data();
 
   mn = data->test_sp_matrix_A->m * data->test_sp_matrix_A->n;
@@ -29,7 +29,7 @@ static const char* test_constr_sparse_mat() {
 
   // Compute norm of the elementwise difference with
   mu_assert("Linear algebra tests: error in constructing sparse/dense matrix!",
-            OSQPVectorf_norm_inf_diff(nullptr, v1, v2) < TESTS_TOL);
+            OSQPVectorf_norm_inf_diff(pCUDA_Handle, v1, v2) < TESTS_TOL);
 
   // Free memory
   c_free(Adns); // because of vars from file matrices.h
@@ -43,7 +43,6 @@ static const char* test_constr_sparse_mat() {
 #endif /* ifndef CUDA_SUPPORT */
 
 static const char* test_vec_operations() {
-
   c_float  scresult, scref;
   OSQPVectorf *v1, *v2, *ref, *result;
   lin_alg_sols_data *data = generate_problem_lin_alg_sols_data();
@@ -62,20 +61,20 @@ static const char* test_vec_operations() {
 
   // scaled additions
   //------------------
-  OSQPVectorf_add_scaled(nullptr, result, data->test_vec_ops_sc1,v1,data->test_vec_ops_sc2,v2);
+  OSQPVectorf_add_scaled(pCUDA_Handle, result, data->test_vec_ops_sc1,v1,data->test_vec_ops_sc2,v2);
   OSQPVectorf_from_raw(ref, data->test_vec_ops_add_scaled);
 
   mu_assert(
     "Linear algebra tests: error in vector operation, adding scaled vector",
-    OSQPVectorf_norm_inf_diff(nullptr, ref, result) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, ref, result) < TESTS_TOL);
 
   // Norm_inf of the difference
   mu_assert(
     "Linear algebra tests: error in vector operation, norm_inf of difference",
-    c_absval(OSQPVectorf_norm_inf_diff(nullptr, v1,v2) - data->test_vec_ops_norm_inf_diff) < TESTS_TOL);
+    c_absval(OSQPVectorf_norm_inf_diff(pCUDA_Handle, v1,v2) - data->test_vec_ops_norm_inf_diff) < TESTS_TOL);
 
   // norm_inf
-  scresult = OSQPVectorf_norm_inf(nullptr, v1);
+  scresult = OSQPVectorf_norm_inf(pCUDA_Handle, v1);
   scref    = data->test_vec_ops_norm_inf;
   mu_assert("Linear algebra tests: error in vector operation, norm_inf",
             c_absval(scresult - scref) < TESTS_TOL);
@@ -89,12 +88,12 @@ static const char* test_vec_operations() {
 
   mu_assert(
     "Linear algebra tests: error in vector operation, elementwise reciprocal",
-    OSQPVectorf_norm_inf_diff(nullptr, ref, result) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, ref, result) < TESTS_TOL);
 
 
   // dot product reciprocal
   //-----------------------
-  scresult = OSQPVectorf_dot_prod(solver->info->CUDA_handle, v1,v2);
+  scresult = OSQPVectorf_dot_prod(pCUDA_Handle, v1,v2);
   scref    = data->test_vec_ops_vec_prod;
   mu_assert("Linear algebra tests: error in vector operation, vector product",
             c_absval(scresult - scref) < TESTS_TOL);
@@ -106,7 +105,7 @@ static const char* test_vec_operations() {
 
   mu_assert(
     "Linear algebra tests: error in vector operation, elementwise maximum between vectors",
-    OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
 
   // Elementwise maximum
   //-----------------------
@@ -115,7 +114,7 @@ static const char* test_vec_operations() {
 
   mu_assert(
     "Linear algebra tests: error in vector operation, elementwise minimum between vectors",
-    OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
 
   // cleanup
   OSQPVectorf_free(v1);
@@ -128,7 +127,6 @@ static const char* test_vec_operations() {
 }
 
 static const char* test_mat_operations() {
-
   OSQPMatrix *A, *Ad, *dA; // Matrices used for tests
   OSQPMatrix *refM;
   OSQPVectorf *d, *refv, *resultv;
@@ -137,16 +135,16 @@ static const char* test_mat_operations() {
 
 
   // Import matrices (3 copies) and vector data
-  A  = OSQPMatrix_new_from_csc(nullptr, data->test_mat_ops_A,0); //asymmetric
-  Ad = OSQPMatrix_new_from_csc(nullptr, data->test_mat_ops_A,0); //asymmetric
-  dA = OSQPMatrix_new_from_csc(nullptr, data->test_mat_ops_A,0); //asymmetric
+  A  = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_ops_A,0); //asymmetric
+  Ad = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_ops_A,0); //asymmetric
+  dA = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_ops_A,0); //asymmetric
   d  = OSQPVectorf_new(data->test_mat_ops_d, data->test_mat_ops_n);
 
 #ifndef CUDA_SUPPORT
 
   // Premultiply matrix A
   OSQPMatrix_lmult_diag(dA, d);
-  refM = OSQPMatrix_new_from_csc(nullptr, data->test_mat_ops_prem_diag, 0); //asymmetric
+  refM = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_ops_prem_diag, 0); //asymmetric
   mu_assert(
     "Linear algebra tests: error in matrix operation, premultiply diagonal",
     OSQPMatrix_is_eq(dA, refM, TESTS_TOL));
@@ -155,7 +153,7 @@ static const char* test_mat_operations() {
 
   // Postmultiply matrix A
   OSQPMatrix_rmult_diag(Ad, d);
-  refM = OSQPMatrix_new_from_csc(nullptr, data->test_mat_ops_postm_diag, 0); //asymmetric
+  refM = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_ops_postm_diag, 0); //asymmetric
   mu_assert(
     "Linear algebra tests: error in matrix operation, postmultiply diagonal",
     OSQPMatrix_is_eq(Ad, refM, TESTS_TOL));
@@ -169,7 +167,7 @@ static const char* test_mat_operations() {
   refv    = OSQPVectorf_new(data->test_mat_ops_inf_norm_cols, data->test_mat_ops_n);
   mu_assert(
     "Linear algebra tests: error in matrix operation, max norm over columns",
-    OSQPVectorf_norm_inf_diff(nullptr, refv, resultv) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, refv, resultv) < TESTS_TOL);
   OSQPVectorf_free(resultv);
   OSQPVectorf_free(refv);
 
@@ -179,7 +177,7 @@ static const char* test_mat_operations() {
   refv    = OSQPVectorf_new(data->test_mat_ops_inf_norm_rows, data->test_mat_ops_n);
   mu_assert(
     "Linear algebra tests: error in matrix operation, max norm over rows",
-    OSQPVectorf_norm_inf_diff(nullptr, refv, resultv) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, refv, resultv) < TESTS_TOL);
   OSQPVectorf_free(resultv);
   OSQPVectorf_free(refv);
 
@@ -195,7 +193,6 @@ static const char* test_mat_operations() {
 }
 
 static const char* test_mat_vec_multiplication() {
-
   OSQPVectorf *x, *y;
   OSQPVectorf *ref, *result;
   OSQPMatrix  *Pu, *A;
@@ -204,69 +201,69 @@ static const char* test_mat_vec_multiplication() {
 
 
   //import data
-  A  = OSQPMatrix_new_from_csc(nullptr, data->test_mat_vec_A, 0); //asymmetric
-  Pu = OSQPMatrix_new_from_csc(nullptr, data->test_mat_vec_Pu, 1); //symmetric
+  A  = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_vec_A, 0); //asymmetric
+  Pu = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_mat_vec_Pu, 1); //symmetric
   x  = OSQPVectorf_new(data->test_mat_vec_x, data->test_mat_vec_n);
   y  = OSQPVectorf_new(data->test_mat_vec_y, data->test_mat_vec_m);
 
   // Matrix-vector multiplication:  y = Ax
   result = OSQPVectorf_malloc(data->test_mat_vec_m);
-  OSQPMatrix_Axpy(nullptr, A, x, result, 1.0, 0.0);
+  OSQPMatrix_Axpy(pCUDA_Handle, A, x, result, 1.0, 0.0);
   ref = OSQPVectorf_new(data->test_mat_vec_Ax, data->test_mat_vec_m);
   mu_assert(
     "Linear algebra tests: error in matrix-vector operation, matrix-vector multiplication",
-    OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
   OSQPVectorf_free(ref);
   OSQPVectorf_free(result);
 
   // Cumulative matrix-vector multiplication:  y += Ax
   result = OSQPVectorf_new(data->test_mat_vec_y, data->test_mat_vec_m);
   ref    = OSQPVectorf_new(data->test_mat_vec_Ax_cum, data->test_mat_vec_m);
-  OSQPMatrix_Axpy(nullptr, A, x, result, 1.0, 1.0);
+  OSQPMatrix_Axpy(pCUDA_Handle, A, x, result, 1.0, 1.0);
   mu_assert(
     "Linear algebra tests: error in matrix-vector operation, cumulative matrix-vector multiplication",
-    OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
   OSQPVectorf_free(result);
   OSQPVectorf_free(ref);
 
   // Matrix-transpose-vector multiplication:  x = A'*y
   result = OSQPVectorf_malloc(data->test_mat_vec_n);
-  OSQPMatrix_Atxpy(nullptr, A, y, result, 1.0, 0.0);
+  OSQPMatrix_Atxpy(pCUDA_Handle, A, y, result, 1.0, 0.0);
   ref = OSQPVectorf_new(data->test_mat_vec_ATy,data->test_mat_vec_n);
   mu_assert(
     "Linear algebra tests: error in matrix-vector operation, matrix-transpose-vector multiplication",
-    OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
   OSQPVectorf_free(ref);
   OSQPVectorf_free(result);
 
   // Cumulative matrix-transpose-vector multiplication:  x += A'*y
   result = OSQPVectorf_new(data->test_mat_vec_x, data->test_mat_vec_n);
   ref    = OSQPVectorf_new(data->test_mat_vec_ATy_cum, data->test_mat_vec_n);
-  OSQPMatrix_Atxpy(nullptr, A, y, result, 1.0, 1.0);
+  OSQPMatrix_Atxpy(pCUDA_Handle, A, y, result, 1.0, 1.0);
   mu_assert(
     "Linear algebra tests: error in matrix-vector operation, cumulative matrix-transpose-vector multiplication",
-    OSQPVectorf_norm_inf_diff(nullptr, result,ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, result,ref) < TESTS_TOL);
   OSQPVectorf_free(ref);
   OSQPVectorf_free(result);
 
   // Symmetric-matrix-vector multiplication (only upper part is stored)
   result = OSQPVectorf_malloc(data->test_mat_vec_n);
-  OSQPMatrix_Axpy(nullptr, Pu, x, result, 1.0, 0.0);
+  OSQPMatrix_Axpy(pCUDA_Handle, Pu, x, result, 1.0, 0.0);
   ref = OSQPVectorf_new(data->test_mat_vec_Px,data->test_mat_vec_n);
   mu_assert(
     "Linear algebra tests: error in matrix-vector operation, symmetric matrix-vector multiplication",
-  OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+  OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
   OSQPVectorf_free(ref);
   OSQPVectorf_free(result);
 
   // Cumulative symmetric-matrix-vector multiplication x += Px
   result = OSQPVectorf_new(data->test_mat_vec_x, data->test_mat_vec_n);
   ref    = OSQPVectorf_new(data->test_mat_vec_Px_cum, data->test_mat_vec_n);
-  OSQPMatrix_Axpy(nullptr, Pu, x, result, 1.0,1.0);
+  OSQPMatrix_Axpy(pCUDA_Handle, Pu, x, result, 1.0,1.0);
 
   mu_assert(
     "Linear algebra tests: error in matrix-vector operation, cumulative symmetric matrix-vector multiplication",
-  OSQPVectorf_norm_inf_diff(nullptr, result, ref) < TESTS_TOL);
+  OSQPVectorf_norm_inf_diff(pCUDA_Handle, result, ref) < TESTS_TOL);
   OSQPVectorf_free(ref);
   OSQPVectorf_free(result);
 
@@ -283,14 +280,13 @@ static const char* test_mat_vec_multiplication() {
 }
 
 static const char* test_quad_form_upper_triang() {
-
   c_float val;
   lin_alg_sols_data *data = generate_problem_lin_alg_sols_data();
-  OSQPMatrix* P  = OSQPMatrix_new_from_csc(nullptr, data->test_qpform_Pu, 1); //triu;
+  OSQPMatrix* P  = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_qpform_Pu, 1); //triu;
   OSQPVectorf* x = OSQPVectorf_new(data->test_qpform_x, data->test_mat_vec_n);
 
   // Compute quadratic form
-  val = OSQPMatrix_quad_form(nullptr, P, x);
+  val = OSQPMatrix_quad_form(pCUDA_Handle, P, x);
 
   mu_assert(
     "Linear algebra tests: error in computing quadratic form using upper triangular matrix!",
@@ -306,8 +302,7 @@ static const char* test_quad_form_upper_triang() {
 
 static const char* test_lin_alg()
 {
-  // initialize algebra libraries
-  osqp_algebra_init_libs(&solver->info->CUDA_handle, solver->settings->deviceId);
+  osqp_algebra_init_libs(&pCUDA_Handle, 0);
 
 #ifndef CUDA_SUPPORT
   mu_run_test(test_constr_sparse_mat);
@@ -319,7 +314,7 @@ static const char* test_lin_alg()
   mu_run_test(test_quad_form_upper_triang);
 
   // free algebra libraries
-  osqp_algebra_free_libs(&solver->info->CUDA_handle);
+  osqp_algebra_free_libs(&pCUDA_Handle);
 
   return 0;
 }

@@ -439,27 +439,29 @@ endif()
 # ----------------------------------------------
 # Add custom command to generate tests
 if (UNITTESTS)
-    find_package(PythonInterp)
-    if(NOT PYTHONINTERP_FOUND)
+    find_package (Python3 COMPONENTS Interpreter)
+    if(NOT Python3_FOUND)
         message( FATAL_ERROR "You need python installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
     endif()
 
-    INCLUDE(FindPythonModule)
-    find_python_module(numpy)
-    IF(NOT NUMPY_FOUND)
-        message( FATAL_ERROR "You need numpy python module installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
-    ENDIF()
+    find_package(PythonLibs)
 
-    find_python_module(scipy)
+    #INCLUDE(FindPythonModule)
+    #find_python_module(numpy)
+    #IF(NOT Python3_NumPy_FOUND)
+    #    message( FATAL_ERROR "You need numpy python module installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
+    #ENDIF()
+
+    #find_python_module(scipy)
     # Check scipy version for sparse.random functionalities
-    IF((NOT SCIPY_FOUND) OR (SCIPY_VERSION VERSION_LESS 0.17.0))
-        message( FATAL_ERROR "You need scipy python module installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
-    ENDIF()
+    #IF((NOT SCIPY_FOUND) OR (SCIPY_VERSION VERSION_LESS 0.17.0))
+    #    message( FATAL_ERROR "You need scipy python module installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
+    #ENDIF()
 
-    find_python_module(__future__)
-    IF(NOT __FUTURE___FOUND)
-        message( FATAL_ERROR "You need future python module installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
-    ENDIF()
+    #find_python_module(__future__)
+    #IF(NOT __FUTURE___FOUND)
+    #    message( FATAL_ERROR "You need future python module installed to generate unittests. If you do not want to compile the unittests pass -DUNITTESTS=OFF to cmake." )
+    #ENDIF()
 
     # Add test_headers and codegen_test_headers
     add_subdirectory(tests)

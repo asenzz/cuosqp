@@ -30,24 +30,24 @@ static const char* test_solveKKT() {
   OSQPVectorf_set_scalar(rho_vec,settings->rho);
 
   //data Matrices
-  Pu = OSQPMatrix_new_from_csc(nullptr, data->test_solve_KKT_Pu,1);
-  A  = OSQPMatrix_new_from_csc(nullptr, data->test_solve_KKT_A, 0);
+  Pu = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_solve_KKT_Pu,1);
+  A  = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_solve_KKT_A, 0);
 
   // Set residuals to small values to enforce accurate solution by indirect solvers
   pri_res = 1e-7;
   dua_res = 1e-7;
 
   // Form and factorize KKT matrix
-  exitflag = init_linsys_solver(&s, Pu, A, rho_vec, settings, &pri_res, &dua_res, 0);
+  exitflag = init_linsys_solver(pCUDA_Handle, &s, Pu, A, rho_vec, settings, &pri_res, &dua_res, 0);
 
   // Solve  KKT x = b via LDL given factorization
   rhs = OSQPVectorf_new(data->test_solve_KKT_rhs, m+n);
-  s->solve(s, rhs, 2);
+  s->solve(pCUDA_Handle, s, rhs, 2);
   ref = OSQPVectorf_new(data->test_solve_KKT_x, m+n);
 
   mu_assert(
     "Linear systems solve tests: error in forming and solving KKT system!",
-    OSQPVectorf_norm_inf_diff(nullptr, rhs, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, rhs, ref) < TESTS_TOL);
 
 
   // Cleanup
@@ -85,8 +85,8 @@ static char* test_solveKKT_pardiso() {
   OSQPVectorf_set_scalar(rho_vec,settings->rho);
 
   //data Matrices
-  Pu = OSQPMatrix_new_from_csc(nullptr, data->test_solve_KKT_Pu,1);
-  A  = OSQPMatrix_new_from_csc(nullptr, data->test_solve_KKT_A,0);
+  Pu = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_solve_KKT_Pu,1);
+  A  = OSQPMatrix_new_from_csc(pCUDA_Handle, data->test_solve_KKT_A,0);
 
   // Load Pardiso shared library
   exitflag = load_linsys_solver(MKL_PARDISO_SOLVER);
@@ -103,7 +103,7 @@ static char* test_solveKKT_pardiso() {
 
   mu_assert(
     "Linear systems solve tests: error in forming and solving KKT system with PARDISO!",
-    OSQPVectorf_norm_inf_diff(nullptr, rhs, ref) < TESTS_TOL);
+    OSQPVectorf_norm_inf_diff(pCUDA_Handle, rhs, ref) < TESTS_TOL);
 
 
   // Cleanup
@@ -126,7 +126,7 @@ static char* test_solveKKT_pardiso() {
 static const char* test_solve_linsys()
 {
   // initialize algebra libraries
-  osqp_algebra_init_libs(&solver->info->CUDA_handle, solver->settings->deviceId);
+  osqp_algebra_init_libs(&pCUDA_Handle, 0);
 
   mu_run_test(test_solveKKT);
 #ifdef ENABLE_MKL_PARDISO
@@ -134,7 +134,7 @@ static const char* test_solve_linsys()
 #endif
 
   // free algebra libraries
-  osqp_algebra_free_libs(&solver->info->CUDA_handle);
+  osqp_algebra_free_libs(&pCUDA_Handle);
 
   return 0;
 }

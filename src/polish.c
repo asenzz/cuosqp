@@ -196,7 +196,7 @@ static c_int iterative_refinement(OSQPSolver    *solver,
       OSQPMatrix_Axpy(solver->info->CUDA_handle, work->pol->Ared, z1, rhs2, -1.0, 1.0);
 
       // Solve linear system. Store solution in rhs
-      p->solve(p, rhs, 1);
+      p->solve(solver->info->CUDA_handle, p, rhs, 1);
 
       // Update solution
       OSQPVectorf_plus(solver->info->CUDA_handle, z,z,rhs);
@@ -339,7 +339,7 @@ c_int polish(OSQPSolver *solver) {
   plsh->warm_start(plsh, work->x);
 
   // Solve the reduced KKT system
-  plsh->solve(plsh, pol_sol, 1);
+  plsh->solve(solver->info->CUDA_handle, plsh, pol_sol, 1);
 
   // Perform iterative refinement to compensate for the regularization error
   exitflag = iterative_refinement(solver, plsh, pol_sol, rhs_red);

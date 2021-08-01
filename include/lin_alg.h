@@ -11,10 +11,10 @@ extern "C" {
 
 
 /* Initialize libraries that implement algebra. */
-c_int osqp_algebra_init_libs(void **CUDA_handle, const c_int deviceId);
+c_int osqp_algebra_init_libs(CUDA_Handle_t **CUDA_handle, const c_int deviceId);
 
 /* Free libraries that implement algebra. */
-void osqp_algebra_free_libs(void **CUDA_handle);
+void osqp_algebra_free_libs(CUDA_Handle_t **CUDA_handle);
 
 
 # ifdef __cplusplus

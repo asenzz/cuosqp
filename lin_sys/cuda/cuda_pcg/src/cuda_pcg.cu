@@ -71,6 +71,8 @@ static void mat_vec_prod(
   /* d_y *= sigma */
   checkCudaErrors(cublasTscal(cublasHandle_t(CUDA_handle->cublasHandle), n, sigma, d_y, 1));
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   /* d_y += P * d_x */
   checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_handle->cusparseHandle, P->alg,
                                   CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -79,21 +81,26 @@ static void mat_vec_prod(
                                   CUDA_FLOAT, P->row_ptr, P->col_ind, d_x,
                                   CUDA_FLOAT, &H_ONE, CUDA_FLOAT, d_y,
                                   CUDA_FLOAT, CUDA_FLOAT, P->buffer));
-
+#pragma GCC diagnostic pop
   if (m == 0) return;
 
   if (!s->d_rho_vec) {
     /* d_z = rho * A * d_x */
-    checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_handle->cusparseHandle, A->alg,
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+      checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_handle->cusparseHandle, A->alg,
                                     CUSPARSE_OPERATION_NON_TRANSPOSE,
                                     A->m, A->n, A->nnz, s->h_rho,
                                     CUDA_FLOAT, A->MatDescription, A->val,
                                     CUDA_FLOAT, A->row_ptr, A->col_ind, d_x,
                                     CUDA_FLOAT, &H_ZERO, CUDA_FLOAT, s->d_z,
                                     CUDA_FLOAT, CUDA_FLOAT, A->buffer));
+#pragma GCC diagnostic pop
   }
   else {
     /* d_z = A * d_x */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_handle->cusparseHandle, A->alg,
                                     CUSPARSE_OPERATION_NON_TRANSPOSE,
                                     A->m, A->n, A->nnz, &H_ONE,
@@ -101,12 +108,15 @@ static void mat_vec_prod(
                                     CUDA_FLOAT, A->row_ptr, A->col_ind, d_x,
                                     CUDA_FLOAT, &H_ZERO, CUDA_FLOAT, s->d_z,
                                     CUDA_FLOAT, CUDA_FLOAT, A->buffer));
+#pragma GCC diagnostic pop
 
     /* d_z = diag(d_rho_vec) * dz */
     cuda_vec_ew_prod(s->d_z, s->d_z, s->d_rho_vec, m);
   }
 
   /* d_y += A' * d_z */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_handle->cusparseHandle, At->alg,
                                   CUSPARSE_OPERATION_NON_TRANSPOSE,
                                   At->m, At->n, At->nnz, &H_ONE,
@@ -114,6 +124,7 @@ static void mat_vec_prod(
                                   CUDA_FLOAT, At->row_ptr, At->col_ind, s->d_z,
                                   CUDA_FLOAT, &H_ONE, CUDA_FLOAT, d_y,
                                   CUDA_FLOAT, CUDA_FLOAT, A->buffer));
+#pragma GCC diagnostic pop
 }
 
 

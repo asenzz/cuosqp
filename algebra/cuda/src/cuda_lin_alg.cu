@@ -949,6 +949,8 @@ void cuda_mat_Axpy(CUDA_Handle_t *CUDA_Handle, const csr     *A,
     return;
   }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   checkCudaErrors(cusparseCsrmvEx((cusparseHandle_t)CUDA_Handle->cusparseHandle, A->alg,
                                   CUSPARSE_OPERATION_NON_TRANSPOSE,
                                   A->m, A->n, A->nnz, &alpha,
@@ -956,6 +958,7 @@ void cuda_mat_Axpy(CUDA_Handle_t *CUDA_Handle, const csr     *A,
                                   CUDA_FLOAT, A->row_ptr, A->col_ind, d_x,
                                   CUDA_FLOAT, &beta, CUDA_FLOAT, d_y,
                                   CUDA_FLOAT, CUDA_FLOAT, A->buffer));
+#pragma GCC diagnostic pop
 }
 
 void cuda_mat_quad_form(CUDA_Handle_t *CUDA_Handle, const csr     *P,

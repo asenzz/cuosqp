@@ -82,6 +82,7 @@ void osqp_set_default_settings(OSQPSettings *settings) {
 #ifdef PROFILING
   settings->time_limit = TIME_LIMIT;
 #endif /* ifdef PROFILING */
+  settings->deviceId = 0;
 }
 
 #ifndef EMBEDDED
@@ -126,6 +127,12 @@ c_int osqp_setup(OSQPSolver** solverp,
 # endif /* ifdef PROFILING */
 
   // Initialize algebra libraries
+
+  // Copy settings
+  solver->settings = copy_settings(settings);
+  if (!(solver->settings)) return osqp_error(OSQP_MEM_ALLOC_ERROR);
+  // Allocate  information
+  solver->info = c_calloc(1, sizeof(OSQPInfo));
   exitflag = osqp_algebra_init_libs(&solver->info->CUDA_handle, solver->settings->deviceId);
   if (exitflag) {
     return osqp_error(OSQP_ALGEBRA_LOAD_ERROR);
@@ -198,10 +205,6 @@ c_int osqp_setup(OSQPSolver** solverp,
     return osqp_error(OSQP_MEM_ALLOC_ERROR);
   if (!(work->delta_x) || !(work->Pdelta_x) || !(work->Adelta_x))
     return osqp_error(OSQP_MEM_ALLOC_ERROR);
-
-  // Copy settings
-  solver->settings = copy_settings(settings);
-  if (!(solver->settings)) return osqp_error(OSQP_MEM_ALLOC_ERROR);
 
   // Perform scaling
   if (settings->scaling) {
@@ -280,9 +283,7 @@ c_int osqp_setup(OSQPSolver** solverp,
   if ( m && (!(solver->solution->y) || !(solver->solution->prim_inf_cert)) )
     return osqp_error(OSQP_MEM_ALLOC_ERROR);
 
-  // Allocate and initialize information
-  solver->info = c_calloc(1, sizeof(OSQPInfo));
-  if (!(solver->info)) return osqp_error(OSQP_MEM_ALLOC_ERROR);
+// Allocate and initialize informationif (!(solver->info)) return osqp_error(OSQP_MEM_ALLOC_ERROR);
   solver->info->status_polish = 0;              // Polishing not performed
   update_status(solver->info, OSQP_UNSOLVED);
 # ifdef PROFILING
@@ -1025,12 +1026,16 @@ c_int osqp_update_P(OSQPSolver    *solver,
     // Scale data
     scale_data(solver);
   }
-
+#ifdef CUDA_SUPPORT
   // Update linear system structure with new data
-  exitflag = work->linsys_solver->update_matrices(work->linsys_solver,
+  exitflag = work->linsys_solver->update_matrices(solver->info->CUDA_handle, work->linsys_solver,
                                                   work->data->P,
                                                   work->data->A);
-
+#else
+    exitflag = work->linsys_solver->update_matrices(work->linsys_solver,
+                                                  work->data->P,
+                                                  work->data->A);
+#endif
   // Reset solver information
   reset_info(solver->info);
 
@@ -1099,7 +1104,7 @@ c_int osqp_update_A(OSQPSolver *solver,
   }
 
   // Update linear system structure with new data
-  exitflag = work->linsys_solver->update_matrices(work->linsys_solver,
+  exitflag = work->linsys_solver->update_matrices(solver->info->CUDA_handle, work->linsys_solver,
                                                   work->data->P,
                                                   work->data->A);
 
@@ -1193,7 +1198,7 @@ c_int osqp_update_P_A(OSQPSolver    *solver,
   }
 
   // Update linear system structure with new data
-  exitflag = work->linsys_solver->update_matrices(work->linsys_solver,
+  exitflag = work->linsys_solver->update_matrices(solver->info->CUDA_handle, work->linsys_solver,
                                                   work->data->P,
                                                   work->data->A);
 
@@ -1259,7 +1264,7 @@ c_int osqp_update_rho(OSQPSolver *solver, c_float rho_new) {
   }
 
   // Update rho_vec in KKT matrix
-  exitflag = work->linsys_solver->update_rho_vec(work->linsys_solver, work->rho_vec, solver->settings->rho);
+  exitflag = work->linsys_solver->update_rho_vec(solver->info->CUDA_handle, work->linsys_solver, work->rho_vec, solver->settings->rho);
 
 #ifdef PROFILING
   if (work->rho_update_from_solve == 0)

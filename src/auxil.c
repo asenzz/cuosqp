@@ -127,7 +127,7 @@ c_int update_rho_vec(OSQPSolver *solver) {
 
   // Update rho_vec in KKT matrix if constraints type has changed
   if (constr_type_changed == 1) {
-    exitflag = work->linsys_solver->update_rho_vec(work->linsys_solver, work->rho_vec, solver->settings->rho);
+    exitflag = work->linsys_solver->update_rho_vec(solver->info->CUDA_handle, work->linsys_solver, work->rho_vec, solver->settings->rho);
   }
 
   return exitflag;
@@ -176,7 +176,7 @@ void update_xz_tilde(OSQPSolver *solver, c_int admm_iter) {
   compute_rhs(solver);
 
   // Solve linear system
-  work->linsys_solver->solve(work->linsys_solver, work->xz_tilde, admm_iter);
+  work->linsys_solver->solve(solver->info->CUDA_handle, work->linsys_solver, work->xz_tilde, admm_iter);
 }
 
 void update_x(OSQPSolver *solver) {

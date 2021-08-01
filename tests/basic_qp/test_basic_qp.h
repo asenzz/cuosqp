@@ -551,6 +551,7 @@ static const char* test_basic_qp_update()
   settings->scaling    = 0;
   settings->verbose    = 1;
   settings->warm_start = 0;
+  settings->deviceId   = 0;
 
   // Setup solver
   exitflag = osqp_setup(&solver, data->P, data->q,

@@ -237,6 +237,8 @@ void update_mp_buffer(CUDA_Handle_t *CUDA_Handle, csr *P) {
   size_t bufferSizeInBytes = 0;
   c_float alpha = 1.0;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   checkCudaErrors(cusparseCsrmvEx_bufferSize((cusparseHandle_t)CUDA_Handle->cusparseHandle, P->alg,
                                              CUSPARSE_OPERATION_NON_TRANSPOSE,
                                              P->m, P->n, P->nnz, &alpha,
@@ -244,7 +246,8 @@ void update_mp_buffer(CUDA_Handle_t *CUDA_Handle, csr *P) {
                                              CUDA_FLOAT, P->row_ptr, P->col_ind, NULL,
                                              CUDA_FLOAT, &alpha, CUDA_FLOAT, NULL,
                                              CUDA_FLOAT, CUDA_FLOAT, &bufferSizeInBytes));
-  
+#pragma GCC diagnostic pop
+
   if (bufferSizeInBytes > P->bufferSizeInBytes) {
     cuda_free((void **) &P->buffer);                            
     cuda_malloc((void **) &P->buffer, bufferSizeInBytes);

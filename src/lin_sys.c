@@ -102,10 +102,6 @@ c_int init_linsys_solver(CUDA_Handle_t *CUDA_Handle, LinSysSolver      **s,
   switch (settings->linsys_solver) {
 
 #ifdef CUDA_SUPPORT
-
-  case CUDA_PCG_SOLVER:
-    return init_linsys_solver_cudapcg(CUDA_Handle, (cudapcg_solver **)s, P, A, rho_vec, settings, scaled_pri_res, scaled_dua_res, polish);
-
   default: /* CUDA_PCG_SOLVER */
     return init_linsys_solver_cudapcg(CUDA_Handle, (cudapcg_solver **)s, P, A, rho_vec, settings, scaled_pri_res, scaled_dua_res, polish);
 

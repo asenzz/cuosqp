@@ -207,7 +207,7 @@ struct OSQPWorkspace_ {
  */
 struct linsys_solver {
   enum linsys_solver_type type;             ///< linear system solver type functions
-  c_int (*solve)(LinSysSolver *self,
+  c_int (*solve)(CUDA_Handle_t *CUDA_Handle, LinSysSolver *self,
                  OSQPVectorf  *b,
                  c_int         admm_iter);
 
@@ -219,11 +219,11 @@ struct linsys_solver {
 # endif // ifndef EMBEDDED
 
 # if EMBEDDED != 1
-  c_int (*update_matrices)(LinSysSolver     *self,
+  c_int (*update_matrices)(CUDA_Handle_t *CUDA_Handle, LinSysSolver     *self,
                            const OSQPMatrix *P,            ///< update matrices P
                            const OSQPMatrix *A);           //   and A in the solver
 
-  c_int (*update_rho_vec)(LinSysSolver      *self,
+  c_int (*update_rho_vec)(CUDA_Handle_t *CUDA_Handle, LinSysSolver      *self,
                           const OSQPVectorf *rho_vec,
                           c_float            rho_sc);  ///< Update rho_vec
 # endif // if EMBEDDED != 1

@@ -7,6 +7,7 @@ from numpy.random import Generator, PCG64
 # Set random seed for reproducibility
 rg = Generator(PCG64(1))
 
+
 # Test sparse matrix construction vs dense
 test_sp_matrix_Adns = np.around(.6*rg.random((5, 6))) + rg.standard_normal((5,6))
 test_sp_matrix_A = sparse.csc_matrix(test_sp_matrix_Adns)

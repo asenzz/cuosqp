@@ -261,6 +261,7 @@ OSQPSettings* copy_settings(const OSQPSettings *settings) {
 # ifdef PROFILING
   new->time_limit = settings->time_limit;
 # endif
+  new->deviceId = settings->deviceId;
 
   return new;
 }
