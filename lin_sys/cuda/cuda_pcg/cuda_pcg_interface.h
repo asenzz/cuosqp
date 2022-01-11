@@ -49,6 +49,12 @@ typedef struct cudapcg_solver_ {
 
   void (*free)(struct cudapcg_solver_ *self);
 
+  void (*reset)(struct cudapcg_solver_ *self);
+
+  void (*load)(struct cudapcg_solver_ *self, FILE *vf);
+
+  void (*save)(const struct cudapcg_solver_ *self, FILE *vf);
+
   c_int (*update_matrices)(CUDA_Handle_t *CUDA_Handle, struct cudapcg_solver_ *self,
                            const OSQPMatrix       *P,
                            const OSQPMatrix       *A);
@@ -151,6 +157,12 @@ void warm_start_linsys_solver_cudapcg(cudapcg_solver    *s,
                                       const OSQPVectorf *x);
 
 void free_linsys_solver_cudapcg(cudapcg_solver *s);
+
+void reset_linsys_solver_cudapcg(cudapcg_solver *s);
+
+void load_linsys_solver_cudapcg(cudapcg_solver *s, FILE *vf);
+
+void save_linsys_solver_cudapcg(const cudapcg_solver *s, FILE *vf);
 
 c_int update_linsys_solver_matrices_cudapcg(CUDA_Handle_t *CUDA_Handle, cudapcg_solver   *s,
                                             const OSQPMatrix *P,

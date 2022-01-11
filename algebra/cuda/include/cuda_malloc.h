@@ -29,9 +29,12 @@ void cuda_malloc_host(void** devPtr, size_t size);
 
 void cuda_calloc(void** devPtr, size_t size);
 
+void cuda_memset(void** devPtr, int value, size_t size);
+
 void cuda_free(void** devPtr);
 
 void cuda_free_host(void** devPtr);
+
 
 
 # ifdef __cplusplus

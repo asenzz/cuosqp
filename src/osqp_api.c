@@ -15,6 +15,8 @@
 
 #ifndef EMBEDDED
 # include "lin_sys.h"
+#include "../algebra/default/algebra_impl.h"
+
 #endif /* ifndef EMBEDDED */
 
 
@@ -697,6 +699,112 @@ exit:
 
 
 #ifndef EMBEDDED
+
+#include <stdio.h>
+#include <string.h>
+
+void osqp_load_vectorf(FILE *rf, OSQPVectorf **v)
+{
+    size_t vl = 0;
+    if (fread(&vl, sizeof(vl), 1, rf) != sizeof(vl)) {
+        fprintf(stderr, "osqp_load_vectorf: Incorrect number of bytes read!\n");
+        return;
+    }
+    if (vl < 1) {
+        fprintf(stderr, "osqp_load_vectorf: Zero size returned!\n");
+        return;
+    }
+    OSQPVectorf *vf = OSQPVectorf_malloc(vl);
+    if (fread(vf->values, vl, 1, rf) != vl) {
+        fprintf(stderr, "osqp_load_vectorf: Zero size returned!\n");
+        OSQPVectorf_free(vf);
+        return;
+    }
+    if (*v) OSQPVectorf_free(*v);
+    *v = vf;
+}
+
+void osqp_save_vectorf(FILE *rf, const OSQPVectorf *v)
+{
+    if (fwrite(&v->length, sizeof(v->length), 1, rf) != sizeof(v->length)) {
+        fprintf(stderr, "osqp_save_vectorf: Incorrect number of bytes written!\n");
+        return;
+    }
+    if (v->length < 1) {
+        fprintf(stderr, "osqp_save_vectorf: Zero size vector!\n");
+        return;
+    }
+    OSQPVectorf *vf = OSQPVectorf_malloc(v->length);
+    if (fread(vf->values, sizeof(c_float), v->length, rf) != sizeof(c_float) * v->length) {
+        return;
+    }
+}
+
+// Should be called just before solve, after initialization
+int osqp_load_solver(OSQPSolver *p_solver, const char *file_name)
+{
+    //std::ifstream rf(svr::common::formatter() << SAVE_DECON_LOCATION << "/osqp_model_" << decon_queue_name << ".dat", ios::in | ios::binary);
+    FILE *rf = fopen(file_name, "rb");
+    if(!rf) {
+        fprintf(stderr, "Cannot open input file '%s'!\n", file_name);
+        return 1;
+    }
+    osqp_load_vectorf(rf, &p_solver->work->x_prev);
+    osqp_load_vectorf(rf, &p_solver->work->z_prev);
+    osqp_load_vectorf(rf, &p_solver->work->y);
+    osqp_load_vectorf(rf, &p_solver->work->z);
+    osqp_load_vectorf(rf, &p_solver->work->D_temp);
+    osqp_load_vectorf(rf, &p_solver->work->D_temp_A);
+    osqp_load_vectorf(rf, &p_solver->work->E_temp);
+    osqp_load_vectorf(rf, &p_solver->work->xz_tilde);
+    osqp_load_vectorf(rf, &p_solver->work->xtilde_view);
+    osqp_load_vectorf(rf, &p_solver->work->ztilde_view);
+    osqp_load_vectorf(rf, &p_solver->work->delta_y);
+    osqp_load_vectorf(rf, &p_solver->work->delta_y);
+    osqp_load_vectorf(rf, &p_solver->work->Atdelta_y);
+    osqp_load_vectorf(rf, &p_solver->work->delta_x);
+    osqp_load_vectorf(rf, &p_solver->work->Pdelta_x);
+    osqp_load_vectorf(rf, &p_solver->work->Adelta_x);
+    osqp_load_vectorf(rf, &p_solver->work->scaling->D);
+    osqp_load_vectorf(rf, &p_solver->work->scaling->Dinv);
+    osqp_load_vectorf(rf, &p_solver->work->scaling->E);
+    osqp_load_vectorf(rf, &p_solver->work->scaling->Einv);
+    p_solver->work->linsys_solver->load(p_solver->work->linsys_solver, rf);
+    fclose(rf);
+    return 0;
+}
+
+int osqp_save_solver(const OSQPSolver *p_solver, const char *file_name)
+{
+    FILE *rf = fopen(file_name, "wb");
+    if(!rf) {
+        fprintf(stderr, "Cannot open output file '%s'!\n", file_name);
+        return 1;
+    }
+    osqp_save_vectorf(rf, p_solver->work->x_prev);
+    osqp_save_vectorf(rf, p_solver->work->z_prev);
+    osqp_save_vectorf(rf, p_solver->work->y);
+    osqp_save_vectorf(rf, p_solver->work->z);
+    osqp_save_vectorf(rf, p_solver->work->D_temp);
+    osqp_save_vectorf(rf, p_solver->work->D_temp_A);
+    osqp_save_vectorf(rf, p_solver->work->E_temp);
+    osqp_save_vectorf(rf, p_solver->work->xz_tilde);
+    osqp_save_vectorf(rf, p_solver->work->xtilde_view);
+    osqp_save_vectorf(rf, p_solver->work->ztilde_view);
+    osqp_save_vectorf(rf, p_solver->work->delta_y);
+    osqp_save_vectorf(rf, p_solver->work->delta_y);
+    osqp_save_vectorf(rf, p_solver->work->Atdelta_y);
+    osqp_save_vectorf(rf, p_solver->work->delta_x);
+    osqp_save_vectorf(rf, p_solver->work->Pdelta_x);
+    osqp_save_vectorf(rf, p_solver->work->Adelta_x);
+    osqp_save_vectorf(rf, p_solver->work->scaling->D);
+    osqp_save_vectorf(rf, p_solver->work->scaling->Dinv);
+    osqp_save_vectorf(rf, p_solver->work->scaling->E);
+    osqp_save_vectorf(rf, p_solver->work->scaling->Einv);
+    p_solver->work->linsys_solver->save(p_solver->work->linsys_solver, rf);
+    fclose(rf);
+    return 0;
+}
 
 c_int osqp_cleanup(OSQPSolver *solver) {
 

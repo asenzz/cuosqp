@@ -35,6 +35,11 @@ inline cudaError_t  c_cudaCalloc(T** devPtr, size_t size) {
 }
 
 template<typename T>
+inline cudaError_t  c_cudaMemset(T** devPtr, int value, size_t size) {
+    return cudaMemset(*devPtr, 0, size);
+}
+
+template<typename T>
 inline cudaError_t c_cudaFree(T** devPtr) {
   cudaError_t cuda_error = cudaFree(*devPtr);
   *devPtr = NULL;
@@ -59,6 +64,11 @@ void cuda_malloc_host(void** devPtr, size_t size) {
 
 void cuda_calloc(void** devPtr, size_t size) {
   checkCudaErrors(c_cudaCalloc(devPtr, size));
+}
+
+
+void cuda_memset(void** devPtr, int value, size_t size) {
+    checkCudaErrors(c_cudaMemset(devPtr, value, size));
 }
 
 void cuda_free(void** devPtr) {

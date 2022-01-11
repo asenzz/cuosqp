@@ -5,7 +5,7 @@
 extern "C" {
 # endif // ifdef __cplusplus
 
-#include "csc_math.h"
+//#include "csc_math.h"
 
 /*********************************************
 *   Internal definition of OSQPVector types

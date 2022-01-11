@@ -8,6 +8,7 @@ extern "C" {
 # include "glob_opts.h"
 # include "osqp.h"       //includes user API types
 # include "lin_alg.h"
+#include <stdio.h>
 
 /******************
 * Internal types *
@@ -216,6 +217,9 @@ struct linsys_solver {
 
 # ifndef EMBEDDED
   void (*free)(LinSysSolver *self);         ///< free linear system solver (only in desktop version)
+  void (*reset)(LinSysSolver *self);         ///< reset linear system solver (only in desktop version)
+  void (*load)(LinSysSolver *self, FILE *vf);         ///< reset linear system solver (only in desktop version)
+  void (*save)(LinSysSolver *self, FILE *vf);         ///< reset linear system solver (only in desktop version)
 # endif // ifndef EMBEDDED
 
 # if EMBEDDED != 1
