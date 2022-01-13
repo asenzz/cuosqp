@@ -700,9 +700,6 @@ exit:
 
 #ifndef EMBEDDED
 
-#include <stdio.h>
-#include <string.h>
-
 void osqp_load_vectorf(FILE *rf, OSQPVectorf **v)
 {
     size_t vl = 0;
@@ -714,19 +711,23 @@ void osqp_load_vectorf(FILE *rf, OSQPVectorf **v)
         fprintf(stderr, "osqp_load_vectorf: Zero size returned!\n");
         return;
     }
-    OSQPVectorf *vf = OSQPVectorf_malloc(vl);
-    if (fread(vf->values, vl, 1, rf) != vl) {
+    c_float *tmp_values = (c_float *)c_malloc(vl);
+    if (fread(tmp_values, vl, 1, rf) != vl) {
         fprintf(stderr, "osqp_load_vectorf: Zero size returned!\n");
-        OSQPVectorf_free(vf);
-        return;
+        goto __bail;
     }
+    OSQPVectorf *vf = OSQPVectorf_malloc(vl);
+    OSQPVectorf_from_raw(vf, tmp_values);
     if (*v) OSQPVectorf_free(*v);
     *v = vf;
+    __bail:
+    c_free(tmp_values);
 }
 
 void osqp_save_vectorf(FILE *rf, const OSQPVectorf *v)
 {
-    if (fwrite(&v->length, sizeof(v->length), 1, rf) != sizeof(v->length)) {
+    const size_t len = v->length * sizeof(c_float);
+    if (fwrite(&len, sizeof(len), 1, rf) != sizeof(v->length)) {
         fprintf(stderr, "osqp_save_vectorf: Incorrect number of bytes written!\n");
         return;
     }
@@ -734,10 +735,13 @@ void osqp_save_vectorf(FILE *rf, const OSQPVectorf *v)
         fprintf(stderr, "osqp_save_vectorf: Zero size vector!\n");
         return;
     }
-    OSQPVectorf *vf = OSQPVectorf_malloc(v->length);
-    if (fread(vf->values, sizeof(c_float), v->length, rf) != sizeof(c_float) * v->length) {
-        return;
+    c_float *tmp_values = (c_float *) c_malloc(len);
+    if (fread(tmp_values, sizeof(c_float), v->length, rf) != sizeof(c_float) * v->length) {
+        goto __bail;
     }
+    OSQPVectorf_to_raw(tmp_values, v);
+__bail:
+    c_free(tmp_values);
 }
 
 // Should be called just before solve, after initialization

@@ -7,6 +7,8 @@ extern "C" {
 # endif /* ifdef __cplusplus */
 
 #include "glob_opts.h"
+#include <stdio.h>
+#include <string.h>
 
 /*
  * OSQPVector[fi] types.  Not defined here since it

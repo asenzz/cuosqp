@@ -29,6 +29,88 @@
  *                           Private Functions                                 *
  *******************************************************************************/
 
+
+// Size in bytes
+size_t load_array_len(FILE *vf)
+{
+    size_t len = 0;
+    if (fread(&len, sizeof(size_t), 1, vf) != sizeof(size_t)) {
+        fprintf(stderr, "load_array_len: Incorrect number of bytes read!\n");
+        return 0;
+    }
+    if (len < 1) fprintf(stderr, "load_array_len: Len is zero!\n");
+    return len;
+}
+
+void load_farray_dev(FILE *vf, c_float **v)
+{
+    const size_t len = load_array_len(vf);
+    if (len < 1) return;
+    c_float *tmp_host = c_malloc(len);
+    if (fread(tmp_host, len, 1, vf) != len) {
+        fprintf(stderr, "load_farray_dev: Incorrect number of bytes read!\n");
+        goto __bail;
+    }
+    if (*v) cuda_free((void **)v);
+    cuda_malloc((void **)v, len);
+    cuda_vec_copy_h2d(*v, tmp_host, len / sizeof(c_float));
+    __bail:
+    c_free(tmp_host);
+}
+
+void load_farray_hostdev(FILE *vf, c_float **v)
+{
+    const size_t len = load_array_len(vf);
+    if (len < 1) return;
+    c_float *tmp_host = (c_float *) c_malloc(len);
+    if (fread(tmp_host, len, 1, vf) != len) {
+        fprintf(stderr, "load_farray_hostdev: Incorrect number of bytes read!\n");
+        goto __bail;
+    }
+    if (*v) cuda_free_host((void **)v);
+    cuda_malloc_host((void **)v, len);
+    //cuda_vec_copy_h2d(*v, tmp_host, len / sizeof(c_float));
+    memcpy(*v, tmp_host, len);
+    __bail:
+    c_free(tmp_host);
+}
+
+void load_farray_host(FILE *vf, c_float **v)
+{
+    const size_t len = load_array_len(vf);
+    if (len < 1) return;
+    if (*v) c_free((void *)*v);
+    *v = (c_float *) c_malloc(len);
+    if (fread(*v, 1, len, vf) != len)
+        fprintf(stderr, "load_farray_host: Incorrect number of bytes read!\n");
+}
+
+void save_farray_dev(FILE *vf, const c_float *v, const size_t len)
+{
+    if (fwrite(&len, sizeof(len), 1, vf) != sizeof(len)) {
+        fprintf(stderr, "save_farray_dev: Incorrect number of bytes written!\n");
+        goto __bail;
+    }
+    if (len < 1) return;
+    c_float *tmp_host = (c_float *) c_malloc(len);
+    cuda_vec_copy_d2h(tmp_host, v, len / sizeof(c_float));
+    if (fwrite(tmp_host, len, 1, vf) != len)
+        fprintf(stderr, "save_farray_dev: Incorrect number of bytes written!\n");
+    __bail:
+    c_free(tmp_host);
+}
+
+void save_farray_host(FILE *vf, const c_float *v, const size_t len)
+{
+    if (fwrite(&len, sizeof(len), 1, vf) != sizeof(len)) {
+        fprintf(stderr, "save_farray_host: Incorrect number of bytes written!\n");
+        return;
+    }
+    if (len < 1) return;
+    if (fwrite(v, len, 1, vf) != len)
+        fprintf(stderr, "save_farray_host: Incorrect number of bytes written!\n");
+}
+
 static c_float compute_tolerance(CUDA_Handle_t *CUDA_Handle, cudapcg_solver *s,
                                  c_int           admm_iter) {
 
@@ -329,86 +411,6 @@ void reset_linsys_solver_cudapcg(cudapcg_solver *s)
     }
 }
 
-// Size in bytes
-size_t load_array_len(FILE *vf)
-{
-    size_t len = 0;
-    if (fread(&len, sizeof(size_t), 1, vf) != sizeof(size_t)) {
-        fprintf(stderr, "load_array_len: Incorrect number of bytes read!\n");
-        return 0;
-    }
-    if (len < 1) fprintf(stderr, "load_array_len: Len is zero!\n");
-    return len;
-}
-
-void load_farray_dev(FILE *vf, c_float **v)
-{
-    const size_t len = load_array_len(vf);
-    if (len < 1) return;
-    c_float *tmp_host = c_malloc(len);
-    if (fread(tmp_host, len, 1, vf) != len) {
-        fprintf(stderr, "load_farray_dev: Incorrect number of bytes read!\n");
-        goto __bail;
-    }
-    if (*v) cuda_free((void **)v);
-    cuda_malloc((void **)v, len);
-    cuda_vec_copy_h2d(*v, tmp_host, len / sizeof(c_float));
-__bail:
-    c_free(tmp_host);
-}
-
-void load_farray_hostdev(FILE *vf, c_float **v)
-{
-    const size_t len = load_array_len(vf);
-    if (len < 1) return;
-    c_float *tmp_host = (c_float *) c_malloc(len);
-    if (fread(tmp_host, len, 1, vf) != len) {
-        fprintf(stderr, "load_farray_hostdev: Incorrect number of bytes read!\n");
-        goto __bail;
-    }
-    if (*v) cuda_free_host((void **)v);
-    cuda_malloc_host((void **)v, len);
-    //cuda_vec_copy_h2d(*v, tmp_host, len / sizeof(c_float));
-    memcpy(*v, tmp_host, len);
-__bail:
-    c_free(tmp_host);
-}
-
-void load_farray_host(FILE *vf, c_float **v)
-{
-    const size_t len = load_array_len(vf);
-    if (len < 1) return;
-    if (*v) c_free((void *)*v);
-    *v = (c_float *) c_malloc(len);
-    if (fread(*v, 1, len, vf) != len)
-        fprintf(stderr, "load_farray_host: Incorrect number of bytes read!\n");
-}
-
-void save_farray_dev(FILE *vf, const c_float *v, const size_t len)
-{
-    if (fwrite(&len, sizeof(len), 1, vf) != sizeof(len)) {
-        fprintf(stderr, "save_farray_dev: Incorrect number of bytes written!\n");
-        goto __bail;
-    }
-    if (len < 1) return;
-    c_float *tmp_host = (c_float *) c_malloc(len);
-    cuda_vec_copy_d2h(tmp_host, v, len / sizeof(c_float));
-    if (fwrite(tmp_host, len, 1, vf) != len)
-        fprintf(stderr, "save_farray_dev: Incorrect number of bytes written!\n");
-__bail:
-    c_free(tmp_host);
-}
-
-void save_farray_host(FILE *vf, const c_float *v, const size_t len)
-{
-    if (fwrite(&len, sizeof(len), 1, vf) != sizeof(len)) {
-        fprintf(stderr, "save_farray_host: Incorrect number of bytes written!\n");
-        return;
-    }
-    if (len < 1) return;
-    if (fwrite(v, len, 1, vf) != len)
-        fprintf(stderr, "save_farray_host: Incorrect number of bytes written!\n");
-}
 
 // Should be called just before solve, after init and setup
 void load_linsys_solver_cudapcg(cudapcg_solver *s, FILE *vf)
@@ -436,6 +438,7 @@ void load_linsys_solver_cudapcg(cudapcg_solver *s, FILE *vf)
     }
 }
 
+
 void save_linsys_solver_cudapcg(const cudapcg_solver *s, FILE *vf)
 {
     if (s) {
@@ -460,6 +463,7 @@ void save_linsys_solver_cudapcg(const cudapcg_solver *s, FILE *vf)
         save_farray_dev(vf, s->d_AtA_diag_val, s->n * sizeof(c_float));
     }
 }
+
 
 c_int update_linsys_solver_matrices_cudapcg(CUDA_Handle_t *CUDA_Handle, cudapcg_solver   *s,
                                             const OSQPMatrix *P,
