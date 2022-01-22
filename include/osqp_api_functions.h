@@ -117,6 +117,9 @@ c_int osqp_solve(OSQPSolver *solver);
  * @return        Exitflag for errors
  */
 c_int osqp_cleanup(OSQPSolver *solver);
+c_int osqp_load_solver(OSQPSolver *p_solver, const char *file_name);
+c_int osqp_save_solver(const OSQPSolver *p_solver, const char *file_name);
+
 
 # endif // ifndef EMBEDDED
 

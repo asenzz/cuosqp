@@ -745,12 +745,13 @@ __bail:
 }
 
 // Should be called just before solve, after initialization
-int osqp_load_solver(OSQPSolver *p_solver, const char *file_name)
+c_int osqp_load_solver(OSQPSolver *p_solver, const char *file_name)
 {
     //std::ifstream rf(svr::common::formatter() << SAVE_DECON_LOCATION << "/osqp_model_" << decon_queue_name << ".dat", ios::in | ios::binary);
     FILE *rf = fopen(file_name, "rb");
     if(!rf) {
-        fprintf(stderr, "Cannot open input file '%s'!\n", file_name);
+        fprintf(stderr, "osqp_load_solver: Cannot open input file '%s'!\n", file_name);
+        p_solver = NULL;
         return 1;
     }
     osqp_load_vectorf(rf, &p_solver->work->x_prev);
@@ -778,11 +779,11 @@ int osqp_load_solver(OSQPSolver *p_solver, const char *file_name)
     return 0;
 }
 
-int osqp_save_solver(const OSQPSolver *p_solver, const char *file_name)
+c_int osqp_save_solver(const OSQPSolver *p_solver, const char *file_name)
 {
     FILE *rf = fopen(file_name, "wb");
     if(!rf) {
-        fprintf(stderr, "Cannot open output file '%s'!\n", file_name);
+        fprintf(stderr, "osqp_save_solver: Cannot open output file '%s'!\n", file_name);
         return 1;
     }
     osqp_save_vectorf(rf, p_solver->work->x_prev);
